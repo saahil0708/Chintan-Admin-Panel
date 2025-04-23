@@ -12,8 +12,19 @@ export default function Layout({ children }) {
 
     return (
         <div className="flex font-[Poppins] min-h-screen w-full bg-gray-50">
-            {/* Sidebar - fixed on both mobile and desktop */}
-            <div className={`fixed inset-y-0 z-30 transition-all duration-300 ${isSidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full md:translate-x-0 md:w-20'}`}>
+            {/* Fixed Navbar */}
+            <div className="fixed top-0 left-0 right-0 z-40">
+                <Navbar toggleSidebar={toggleSidebar} />
+            </div>
+            
+            {/* Fixed Sidebar - positioned below navbar */}
+            <div 
+                className={`
+                    fixed top-16 bottom-0 z-30 
+                    transition-all duration-300 
+                    ${isSidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full md:translate-x-0 md:w-20'}
+                `}
+            >
                 <Sidebar 
                     collapsed={!isSidebarOpen} 
                     toggleSidebar={toggleSidebar} 
@@ -28,10 +39,9 @@ export default function Layout({ children }) {
                 />
             )}
             
-            {/* Main content - with padding to account for sidebar */}
-            <div className="flex-1 flex flex-col overflow-hidden md:ml-20 transition-all duration-300 w-full">
-                <Navbar toggleSidebar={toggleSidebar} />
-                <main className="flex-1 overflow-y-auto p-4 w-full pt-20">
+            {/* Main content - with padding to account for both fixed elements */}
+            <div className="flex-1 flex flex-col overflow-hidden pt-16 md:ml-20 transition-all duration-300 w-full">
+                <main className="flex-1 overflow-y-auto p-4 w-full">
                     <Outlet />
                 </main>
             </div>
