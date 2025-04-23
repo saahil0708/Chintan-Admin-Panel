@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Menu, Bell, User, Search, ChevronDown, LogOut, Settings, Sun, Moon } from 'lucide-react';
 
-export default function Navbar({ toggleSidebar }) {
+export default function Navbar({ toggleSidebar, sidebarCollapsed }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -11,7 +11,7 @@ export default function Navbar({ toggleSidebar }) {
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 bg-white font-[Poppins] shadow-md px-4 md:px-6 py-3 flex items-center justify-between h-16 z-50">
+    <div className={`bg-white font-[Poppins] shadow-md px-4 md:px-6 py-3 flex items-center justify-between h-16`}>
       {/* Left Section - Logo and Menu Toggle */}
       <div className="flex items-center">
         {/* Mobile menu button */}
