@@ -187,7 +187,7 @@ export default function ResponsiveNewsPortal() {
       {/* News Portal Content */}
       <main className="max-w-7xl mx-auto px-4 py-4 md:p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-3 md:mb-0">Content Performance</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-3 md:mb-0">Overall Performance</h2>
           <div className="flex space-x-2 md:space-x-3">
             <button className="px-3 py-1.5 md:px-4 md:py-2 bg-white border border-gray-300 rounded-lg text-xs md:text-sm font-medium">Export Data</button>
             <button className="px-3 py-1.5 md:px-4 md:py-2 bg-red-800 text-white rounded-lg text-xs md:text-sm font-medium">Generate Report</button>
