@@ -1,9 +1,12 @@
-import Sidebar from './Components/Global/Sidebar';
+import Layout from './Layout/Layout'
+import Routes from './Routes/Routes'
 
 export default() => {
     return (
         <>
-            < Sidebar />
+            {/* < Sidebar /> */}
+            {/* < Layout /> */}
+            < Routes />
         </>
     )
 }
