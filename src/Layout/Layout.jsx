@@ -61,7 +61,7 @@ export default function Layout({ children }) {
                 </div>
                 
                 {/* Main content - with padding for navbar */}
-                <main className="flex-1 overflow-y-auto p-4 w-full pt-24">
+                <main className="flex-1 overflow-y-auto p-4 w-full pt-20">
                     <Outlet />
                 </main>
             </div>
