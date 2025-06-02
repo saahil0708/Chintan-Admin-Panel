@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useRef, useEffect } from "react"
 import { Upload, X, ImageIcon, Check, Trash2, Search, Filter, Tag, Settings, ChevronDown, Edit3, Copy, Grid, List, Crop, Maximize, Eye, Save, Star, StarOff, RotateCw, ZoomIn, ZoomOut, RefreshCw, Menu, MoreHorizontal } from 'lucide-react'
 
