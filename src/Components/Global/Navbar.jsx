@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Menu, Bell, User, Search, ChevronDown, LogOut, Settings, Sun, Moon } from 'lucide-react';
+import { Menu, Bell, Search, Sun, Moon } from 'lucide-react';
+import { UserButton } from '@clerk/clerk-react';
+
+import '../../App.css'
 
 export default function Navbar({ toggleSidebar, sidebarCollapsed }) {
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   
@@ -45,7 +47,7 @@ export default function Navbar({ toggleSidebar, sidebarCollapsed }) {
       </div>
       
       {/* Right Section - Tools */}
-      <div className="flex items-center space-x-1">
+      <div className="flex items-center space-x-3">
         {/* Theme Toggle */}
         <button 
           onClick={toggleDarkMode} 
@@ -101,40 +103,63 @@ export default function Navbar({ toggleSidebar, sidebarCollapsed }) {
           )}
         </div>
         
-        {/* Profile */}
-        <div className="relative">
-          <button 
-            onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-all"
-          >
-            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600">
-              <User size={16} />
-            </div>
-            <div className="hidden md:block text-left">
-              <p className="text-sm font-medium text-gray-800">Chintan</p>
-              <p className="text-xs text-gray-500">Admin</p>
-            </div>
-            <ChevronDown size={16} className="hidden md:block text-gray-400" />
-          </button>
-          
-          {/* Profile Dropdown */}
-          {showProfileMenu && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 border border-gray-100 z-50">
-              <a href="#" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                <User size={16} className="mr-2 text-gray-500" />
-                View Profile
-              </a>
-              <a href="#" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                <Settings size={16} className="mr-2 text-gray-500" />
-                Account Settings
-              </a>
-              <div className="border-t border-gray-100 my-1"></div>
-              <a href="#" className="flex items-center px-4 py-2 text-sm text-[#a31727] hover:bg-gray-50">
-                <LogOut size={16} className="mr-2" />
-                Log Out
-              </a>
-            </div>
-          )}
+        {/* Enhanced Clerk User Button */}
+        <div className="ml-1 font-[Poppins]">
+          <UserButton 
+            appearance={{
+              elements: {
+                userButtonAvatarBox: {
+                  width: "2rem",
+                  height: "2rem",
+                  borderRadius: "50%",
+                  border: "2px solid #f3f4f6",
+                  transition: "all 0.3s ease",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                  fontFamily: "Poppins",
+                  "&:hover": {
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
+                    fontFamily: "Poppins"
+                  }
+                },
+                userButtonTrigger: {
+                  "&:hover": {
+                    backgroundColor: "rgba(243, 244, 246, 1)",
+                    fontFamily: "Poppins"
+                  },
+                  "&:focus": {
+                    boxShadow: "0 0 0 3px rgba(163, 23, 39, 0.2)",
+                    fontFamily: "Poppins"
+                  }
+                },
+                userButtonPopoverCard: {
+                  borderRadius: "0.5rem",
+                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                  border: "1px solid #e5e7eb",
+                  fontFamily: "Poppins"
+                },
+                userButtonPopoverActionButton: {
+                  "&:hover": {
+                    backgroundColor: "rgba(163, 23, 39, 0.1)",
+                    fontFamily: "Poppins"
+                  }
+                },
+                userButtonPopoverActionButtonText: {
+                  color: "#374151",
+                  fontFamily: "Poppins",
+                  "&:hover": {
+                    color: "#a31727",
+                    fontFamily: "Poppins"
+                  }
+                },
+                userButtonPopoverFooter: {
+                  fontFamily: "Poppins",
+                  paddingTop: "0.75rem",
+                  borderTop: "1px solid #e5e7eb"
+                }
+              }
+            }}
+            afterSignOutUrl="/"
+          />
         </div>
       </div>
     </div>

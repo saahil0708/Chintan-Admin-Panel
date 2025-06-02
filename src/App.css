@@ -12,4 +12,11 @@ html, body {
   body::-webkit-scrollbar {
     display: none;             /* Chrome, Safari, Opera */
   }
+
+/* If using CSS */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+body {
+  font-family: 'Poppins';
+}
   
