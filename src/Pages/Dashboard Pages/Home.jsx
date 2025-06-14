@@ -17,7 +17,11 @@ import {
   Globe,
   User,
   Menu,
-  X
+  X,
+  Save,
+  Image as ImageIcon,
+  Tag,
+  ChevronDown
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -30,46 +34,21 @@ import {
   BarChart,
   Bar
 } from 'recharts';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import '../../Styles/Dashboard.css';
 
-import '../../Styles/Dashboard.css'; // Ensure you have the correct path to your CSS file
+import { useAppContext } from '../../Context/AppContext';
 
 const NewsAdminDashboard = () => {
+
+  const { backendURL, isLoading, setIsLoading } = useAppContext();
+  // State management
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
   const [chartType, setChartType] = useState('line');
-
-  // Sample chart data - replace this with your actual data fetching logic
-  const chartData = {
-    '7d': [
-      { date: 'Jun 8', views: 12400, articles: 8, engagement: 6.2 },
-      { date: 'Jun 9', views: 15600, articles: 12, engagement: 7.1 },
-      { date: 'Jun 10', views: 18200, articles: 15, engagement: 8.3 },
-      { date: 'Jun 11', views: 22100, articles: 18, engagement: 9.1 },
-      { date: 'Jun 12', views: 25300, articles: 14, engagement: 8.7 },
-      { date: 'Jun 13', views: 28700, articles: 16, engagement: 9.4 },
-      { date: 'Jun 14', views: 31200, articles: 19, engagement: 10.2 }
-    ],
-    '30d': [
-      { date: 'Week 1', views: 85000, articles: 42, engagement: 7.8 },
-      { date: 'Week 2', views: 92000, articles: 48, engagement: 8.2 },
-      { date: 'Week 3', views: 98000, articles: 51, engagement: 8.9 },
-      { date: 'Week 4', views: 105000, articles: 45, engagement: 9.3 }
-    ],
-    '90d': [
-      { date: 'Month 1', views: 320000, articles: 185, engagement: 8.1 },
-      { date: 'Month 2', views: 380000, articles: 201, engagement: 8.7 },
-      { date: 'Month 3', views: 420000, articles: 218, engagement: 9.2 }
-    ]
-  };
-
-  const stats = [
-    { title: 'Total Articles', value: '2,847', change: '+12%', icon: FileText, color: 'text-blue-600' },
-    { title: 'Total Views', value: '1.2M', change: '+18%', icon: Eye, color: 'text-green-600' },
-    { title: 'Active Users', value: '45,892', change: '+7%', icon: Users, color: 'text-purple-600' },
-    { title: 'Comments', value: '8,234', change: '+23%', icon: MessageCircle, color: 'text-orange-600' }
-  ];
-
-  const recentArticles = [
+  const [showNewArticleForm, setShowNewArticleForm] = useState(false);
+  const [recentArticles, setRecentArticles] = useState([
     {
       id: 1,
       title: 'Breaking: Major Technology Summit Announces AI Breakthrough',
@@ -110,8 +89,42 @@ const NewsAdminDashboard = () => {
       date: '2024-06-15',
       category: 'Sports'
     }
+  ]);
+  const [isPosting, setIsPosting] = useState(false);
+
+  // Chart data
+  const chartData = {
+    '7d': [
+      { date: 'Jun 8', views: 12400, articles: 8, engagement: 6.2 },
+      { date: 'Jun 9', views: 15600, articles: 12, engagement: 7.1 },
+      { date: 'Jun 10', views: 18200, articles: 15, engagement: 8.3 },
+      { date: 'Jun 11', views: 22100, articles: 18, engagement: 9.1 },
+      { date: 'Jun 12', views: 25300, articles: 14, engagement: 8.7 },
+      { date: 'Jun 13', views: 28700, articles: 16, engagement: 9.4 },
+      { date: 'Jun 14', views: 31200, articles: 19, engagement: 10.2 }
+    ],
+    '30d': [
+      { date: 'Week 1', views: 85000, articles: 42, engagement: 7.8 },
+      { date: 'Week 2', views: 92000, articles: 48, engagement: 8.2 },
+      { date: 'Week 3', views: 98000, articles: 51, engagement: 8.9 },
+      { date: 'Week 4', views: 105000, articles: 45, engagement: 9.3 }
+    ],
+    '90d': [
+      { date: 'Month 1', views: 320000, articles: 185, engagement: 8.1 },
+      { date: 'Month 2', views: 380000, articles: 201, engagement: 8.7 },
+      { date: 'Month 3', views: 420000, articles: 218, engagement: 9.2 }
+    ]
+  };
+
+  // Stats cards data
+  const stats = [
+    { title: 'Total Articles', value: '2,847', change: '+12%', icon: FileText, color: 'text-blue-600' },
+    { title: 'Total Views', value: '1.2M', change: '+18%', icon: Eye, color: 'text-green-600' },
+    { title: 'Active Users', value: '45,892', change: '+7%', icon: Users, color: 'text-purple-600' },
+    { title: 'Comments', value: '8,234', change: '+23%', icon: MessageCircle, color: 'text-orange-600' }
   ];
 
+  // Top performing articles
   const topPerformers = [
     { title: 'AI Revolution in Healthcare', views: '45.2K', engagement: '8.4%' },
     { title: 'Climate Change Solutions', views: '38.7K', engagement: '7.2%' },
@@ -119,29 +132,295 @@ const NewsAdminDashboard = () => {
     { title: 'Tech Industry Updates', views: '28.9K', engagement: '6.1%' }
   ];
 
-  // Function to fetch and update chart data - replace with your API call
-  const fetchChartData = async (period) => {
-    // Example of how you might fetch data:
-    // try {
-    //   const response = await fetch(`/api/analytics?period=${period}`);
-    //   const data = await response.json();
-    //   return data;
-    // } catch (error) {
-    //   console.error('Error fetching chart data:', error);
-    //   return chartData[period]; // fallback to sample data
-    // }
-    
-    // For now, return sample data
-    return chartData[period];
+  // New Article Form Component
+  const NewArticleForm = ({ onClose, onSubmit }) => {
+    const [formData, setFormData] = useState({
+      title: '',
+      content: '',
+      author: '',
+      category: '',
+      trending: false,
+      editorsChoice: false,
+      latestNews: false,
+      tags: [],
+      imageTitle: '',
+      newTag: ''
+    });
+
+    const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+    const categories = ['Technology', 'Environment', 'Business', 'Sports', 'Politics', 'Health', 'Entertainment', 'Science'];
+
+    const handleChange = (e) => {
+      const { name, value, type, checked } = e.target;
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }));
+    };
+
+    const handleTagAdd = (e) => {
+      e.preventDefault();
+      if (formData.newTag.trim() && !formData.tags.includes(formData.newTag.trim())) {
+        setFormData(prev => ({
+          ...prev,
+          tags: [...prev.tags, prev.newTag.trim()],
+          newTag: ''
+        }));
+      }
+    };
+
+    const handleTagRemove = (tagToRemove) => {
+      setFormData(prev => ({
+        ...prev,
+        tags: prev.tags.filter(tag => tag !== tagToRemove)
+      }));
+    };
+
+    const handleCategorySelect = (category) => {
+      setFormData(prev => ({
+        ...prev,
+        category
+      }));
+      setIsCategoryOpen(false);
+    };
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      onSubmit(formData);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="border-b border-gray-200 p-4 flex justify-between items-center sticky top-0 bg-white z-10">
+            <h2 className="text-xl font-semibold text-gray-900">Create New Article</h2>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 transition-colors">
+              <X size={24} />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {/* Form fields */}
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                Article Title *
+              </label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+                Content *
+              </label>
+              <textarea
+                id="content"
+                name="content"
+                value={formData.content}
+                onChange={handleChange}
+                rows={8}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="author" className="block text-sm font-medium text-gray-700 mb-1">
+                Author *
+              </label>
+              <input
+                type="text"
+                id="author"
+                name="author"
+                value={formData.author}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div className="relative">
+              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                Category *
+              </label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                  className="w-full flex justify-between items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  {formData.category || 'Select a category'}
+                  <ChevronDown size={16} className="text-gray-500" />
+                </button>
+                {isCategoryOpen && (
+                  <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 border border-gray-200 max-h-60 overflow-auto">
+                    {categories.map((category) => (
+                      <div
+                        key={category}
+                        onClick={() => handleCategorySelect(category)}
+                        className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                          formData.category === category ? 'bg-red-50 text-red-800' : ''
+                        }`}
+                      >
+                        {category}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="imageTitle" className="block text-sm font-medium text-gray-700 mb-1">
+                Image Title *
+              </label>
+              <div className="flex items-center space-x-2">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    id="imageTitle"
+                    name="imageTitle"
+                    value={formData.imageTitle}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="p-2 bg-gray-100 rounded-md text-gray-700 hover:bg-gray-200 transition-colors"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      imageTitle: 'article-image.jpg'
+                    }));
+                  }}
+                >
+                  <ImageIcon size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
+                Tags
+              </label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {formData.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => handleTagRemove(tag)}
+                      className="ml-1.5 inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  id="newTag"
+                  name="newTag"
+                  value={formData.newTag}
+                  onChange={handleChange}
+                  placeholder="Add a tag"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={handleTagAdd}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors flex items-center"
+                >
+                  <Tag size={16} className="mr-1" />
+                  Add
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Article Flags
+              </label>
+              <div className="flex flex-wrap gap-6">
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    name="trending"
+                    checked={formData.trending}
+                    onChange={handleChange}
+                    className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Trending</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    name="editorsChoice"
+                    checked={formData.editorsChoice}
+                    onChange={handleChange}
+                    className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Editor's Choice</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    name="latestNews"
+                    checked={formData.latestNews}
+                    onChange={handleChange}
+                    className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Latest News</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-800 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center"
+                disabled={isPosting}
+              >
+                {isPosting ? (
+                  <svg className="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                  </svg>
+                ) : (
+                  <>
+                    <Save size={16} className="mr-1" />
+                    Save Article
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
   };
 
-  const handlePeriodChange = async (period) => {
-    setSelectedPeriod(period);
-    // Uncomment below to fetch real data
-    // const newData = await fetchChartData(period);
-    // Update your state with the new data
-  };
-
+  // Helper components
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
@@ -177,6 +456,43 @@ const NewsAdminDashboard = () => {
         </div>
       </div>
     );
+  };
+
+  // Handlers
+  const handleNewArticleSubmit = async (articleData) => {
+    setIsPosting(true);
+    try {
+      const response = await axios.post(`${backendURL}/api/articles`, {
+        title: articleData.title,
+        content: articleData.content,
+        author: articleData.author,
+        category: articleData.category,
+        trending: articleData.trending,
+        editorsChoice: articleData.editorsChoice,
+        latestNews: articleData.latestNews,
+        tags: articleData.tags,
+        imageTitle: articleData.imageTitle,
+      }, { withCredentials: true });
+
+      const newArticle = {
+        id: response.data?.id || recentArticles.length + 1,
+        title: response.data?.title || articleData.title,
+        author: response.data?.author || articleData.author,
+        status: response.data?.status || 'Published',
+        views: response.data?.views || '0',
+        comments: response.data?.comments || 0,
+        date: response.data?.date || new Date().toISOString().split('T')[0],
+        category: response.data?.category || articleData.category
+      };
+
+      setRecentArticles(prev => [newArticle, ...prev]);
+      setShowNewArticleForm(false);
+      toast.success('Article Published Successfully!');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error Publishing Article');
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   const currentData = chartData[selectedPeriod];
@@ -224,7 +540,7 @@ const NewsAdminDashboard = () => {
                   </div>
                   <select 
                     value={selectedPeriod}
-                    onChange={(e) => handlePeriodChange(e.target.value)}
+                    onChange={(e) => setSelectedPeriod(e.target.value)}
                     className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   >
                     <option value="7d">Last 7 days</option>
@@ -352,7 +668,10 @@ const NewsAdminDashboard = () => {
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">Recent Articles</h3>
-                <button className="bg-red-800 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center space-x-2 transition-colors">
+                <button 
+                  onClick={() => setShowNewArticleForm(true)}
+                  className="bg-red-800 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center space-x-2 transition-colors"
+                >
                   <Plus size={16} />
                   <span>New Article</span>
                 </button>
@@ -415,6 +734,14 @@ const NewsAdminDashboard = () => {
           </div>
         </main>
       </div>
+
+      {/* New Article Form Modal */}
+      {showNewArticleForm && (
+        <NewArticleForm 
+          onClose={() => setShowNewArticleForm(false)}
+          onSubmit={handleNewArticleSubmit}
+        />
+      )}
     </div>
   );
 };
