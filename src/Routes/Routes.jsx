@@ -1,56 +1,52 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom"
-import Layout from "../Layout/Layout"
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import Home from "../Pages/Home";
+import PrivateRoute from "./PrivateRoute";
+import EmailVerify from "../Authentication/EmailVerify";
+import ResetPassword from "../Authentication/ResetPassword";
+import Dashboard from "../Pages/Dashboard Pages/Home";
+import Articles from "../Pages/Dashboard Pages/Articles";
 
-import Overview from '../Pages/DashboardOverview';
-import Management from '../Pages/EditNews';
-import Category from '../Pages/ManageCategory';
-import List from '../Pages/ViewNews';
-import Upload from '../Pages/Upload';
-import Settings from "../Pages/Settings";
-import Notification from "../Pages/Notification";
+import Layout from "../Layout/Layout";
+import AdminNavbar from "../Components/Navbar";
 
-export default() => {
-
-    const router = createBrowserRouter([
+export default () => {
+  const router = createBrowserRouter([
+    {
+      path: "/",
+      element: <Home />,
+    },
+    {
+      element: <PrivateRoute />,
+      children: [
         {
-            path: '/',
-            element: < Layout />,
-            children: [
-                {
-                    path: '/',
-                    element: < Overview />
-                },
-                {
-                    path: '/news-management',
-                    element: < Management />
-                },
-                {
-                    path: '/manage-category',
-                    element: < Category />
-                },
-                {
-                    path: '/news-list',
-                    element: < List />
-                },
-                {
-                    path: '/upload-images',
-                    element: < Upload />
-                },
-                {
-                    path: '/settings',
-                    element: < Settings />
-                },
-                {
-                    path: '/notifications',
-                    element: < Notification />
-                }
-            ]
-        }
-    ])
+          path: "/dashboard",
+          element: (
+            <>
+              <AdminNavbar />
+              <Dashboard />
+            </>
+          ),
+        },
+        {
+          path: "/dashboard/articles",
+          element: (
+            <>
+              <AdminNavbar />
+              <Articles />
+            </>
+          ),
+        },
+        {
+          path: "/dashboard/email-verification",
+          element: <EmailVerify />,
+        },
+        {
+          path: "/reset-password",
+          element: <ResetPassword />,
+        },
+      ],
+    },
+  ]);
 
-    return (
-        <>
-            < RouterProvider router={router} />
-        </>
-    )
-}
+  return <RouterProvider router={router} />;
+};
