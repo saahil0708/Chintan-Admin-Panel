@@ -1,82 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Calendar, User, Tag, Clock, ArrowRight } from 'lucide-react';
+import axios from 'axios';
+import { useAppContext } from '../../Context/AppContext';
 
 const ArticlesUI = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Sample articles data
-  const articles = [
-    {
-      id: 1,
-      title: "The Future of Web Development: Trends to Watch in 2025",
-      excerpt: "Exploring the latest technologies and frameworks that are shaping the future of web development, from AI integration to advanced performance optimization.",
-      author: "Sarah Johnson",
-      date: "2025-06-10",
-      category: "Technology",
-      readTime: "5 min read",
-      image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=250&fit=crop",
-      tags: ["Web Dev", "AI", "Trends"]
-    },
-    {
-      id: 2,
-      title: "Building Scalable Applications with Modern Architecture",
-      excerpt: "A comprehensive guide to designing and implementing scalable applications using microservices, cloud infrastructure, and best practices.",
-      author: "Michael Chen",
-      date: "2025-06-08",
-      category: "Architecture",
-      readTime: "8 min read",
-      image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=250&fit=crop",
-      tags: ["Architecture", "Scalability", "Cloud"]
-    },
-    {
-      id: 3,
-      title: "UX Design Principles That Actually Matter",
-      excerpt: "Understanding the fundamental principles of user experience design that create meaningful and intuitive digital products.",
-      author: "Emily Rodriguez",
-      date: "2025-06-06",
-      category: "Design",
-      readTime: "6 min read",
-      image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=250&fit=crop",
-      tags: ["UX", "Design", "Principles"]
-    },
-    {
-      id: 4,
-      title: "Data Science in Practice: Real-World Applications",
-      excerpt: "Exploring how data science is being applied across different industries to solve complex problems and drive innovation.",
-      author: "David Kumar",
-      date: "2025-06-04",
-      category: "Data Science",
-      readTime: "7 min read",
-      image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=250&fit=crop",
-      tags: ["Data Science", "Analytics", "Innovation"]
-    },
-    {
-      id: 5,
-      title: "Cybersecurity Best Practices for Modern Businesses",
-      excerpt: "Essential security measures and strategies that every business should implement to protect against evolving cyber threats.",
-      author: "Lisa Thompson",
-      date: "2025-06-02",
-      category: "Security",
-      readTime: "9 min read",
-      image: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400&h=250&fit=crop",
-      tags: ["Security", "Business", "Best Practices"]
-    },
-    {
-      id: 6,
-      title: "Machine Learning for Beginners: A Practical Guide",
-      excerpt: "A step-by-step introduction to machine learning concepts, algorithms, and practical implementation for newcomers to the field.",
-      author: "Alex Park",
-      date: "2025-05-30",
-      category: "Technology",
-      readTime: "10 min read",
-      image: "https://images.unsplash.com/photo-1555255707-c07966088b7b?w=400&h=250&fit=crop",
-      tags: ["ML", "AI", "Beginner"]
-    }
-  ];
+  const { backendURL } = useAppContext();
+  // Fetch articles from API
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        const response = await axios.get(`${backendURL}/api/articles`, {
+          withCredentials: true,
+        });
+        setArticles(response.data);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
+    };
 
+    fetchArticles();
+  }, []);
+
+  // Get unique categories from articles
   const categories = ['All', ...new Set(articles.map(article => article.category))];
 
+  // Filter articles based on search term and category
   const filteredArticles = articles.filter(article => {
     const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          article.excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -85,6 +41,7 @@ const ArticlesUI = () => {
     return matchesSearch && matchesCategory;
   });
 
+  // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -93,6 +50,41 @@ const ArticlesUI = () => {
       day: 'numeric' 
     });
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-800 mx-auto mb-4"></div>
+          <p className="text-gray-700">Loading articles...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-600 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-medium text-gray-900 mb-2">Error loading articles</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-red-800 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -148,13 +140,13 @@ const ArticlesUI = () => {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {filteredArticles.map(article => (
             <article
-              key={article.id}
+              key={article._id}  // Using _id from MongoDB
               className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer border border-gray-200"
             >
               {/* Article Image */}
               <div className="relative overflow-hidden">
                 <img
-                  src={article.image}
+                  src={article.image || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=400&h=250&fit=crop'}
                   alt={article.title}
                   className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
@@ -177,7 +169,7 @@ const ArticlesUI = () => {
 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {article.tags.map(tag => (
+                  {article.tags && article.tags.map(tag => (
                     <span
                       key={tag}
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
@@ -202,7 +194,7 @@ const ArticlesUI = () => {
                   </div>
                   <div className="flex items-center">
                     <Clock className="w-4 h-4 mr-1" />
-                    {article.readTime}
+                    {article.readTime || '5 min read'}
                   </div>
                 </div>
 
