@@ -5,9 +5,9 @@ import EmailVerify from "../Authentication/EmailVerify";
 import ResetPassword from "../Authentication/ResetPassword";
 import Dashboard from "../Pages/Dashboard Pages/Home";
 import Articles from "../Pages/Dashboard Pages/Articles";
-
-import Layout from "../Layout/Layout";
+import UsersUI from "../Pages/Dashboard Pages/User";
 import AdminNavbar from "../Components/Navbar";
+import CategoriesUI from "../Pages/Dashboard Pages/Categories";
 
 export default () => {
   const router = createBrowserRouter([
@@ -33,6 +33,24 @@ export default () => {
             <>
               <AdminNavbar />
               <Articles />
+            </>
+          ),
+        },
+        {
+          path: "/dashboard/categories",
+          element: (
+            <>
+              <AdminNavbar />
+              <CategoriesUI />
+            </>
+          )
+        },
+        {
+          path: "/dashboard/users",
+          element: (
+            <>
+              <AdminNavbar />
+              <UsersUI />
             </>
           ),
         },
