@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 const AppContext = createContext();
 
 const AppContextProvider = ({ children }) => {
-    const backendURL = import.meta.env.VITE_BACKEND_URL;
+    const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userData, setUserData] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
