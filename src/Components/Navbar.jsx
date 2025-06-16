@@ -18,6 +18,7 @@ import {
   HelpCircle,
   Globe,
   ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 
 import { useAppContext } from "../Context/AppContext";
@@ -31,6 +32,7 @@ const AdminNavbar = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [otp, setOtp] = useState("");
   const [showOtpInput, setShowOtpInput] = useState(false);
+  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
 
   const { userData, logout, backendURL, sendVerificationOTP, verifyEmail } = useAppContext();
   const navigate = useNavigate();
@@ -52,18 +54,6 @@ const AdminNavbar = () => {
       path: "/dashboard/categories",
     },
     { name: "Users", icon: Users, badge: "3", path: "/dashboard/users" },
-    // {
-    //   name: "Analytics",
-    //   icon: PieChart,
-    //   badge: null,
-    //   path: "/dashboard/analytics",
-    // },
-    // {
-    //   name: "Settings",
-    //   icon: Sliders,
-    //   badge: null,
-    //   path: "/dashboard/settings",
-    // },
   ];
 
   const adminName = userData?.name || "Admin";
@@ -110,6 +100,8 @@ const AdminNavbar = () => {
     } catch (error) {
       toast.error("Failed to logout");
       console.error("Logout error:", error);
+    } finally {
+      setShowLogoutConfirmation(false);
     }
   };
 
@@ -141,6 +133,45 @@ const AdminNavbar = () => {
         isScrolled ? "shadow-xl" : ""
       }`}
     >
+      {/* Logout Confirmation Dialog */}
+      {showLogoutConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0 bg-red-100 p-3 rounded-full">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">
+                  Confirm Logout
+                </h3>
+                <div className="mt-2">
+                  <p className="text-sm text-gray-500">
+                    Are you sure you want to log out of the admin panel?
+                  </p>
+                </div>
+                <div className="mt-4 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    onClick={() => setShowLogoutConfirmation(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Navbar */}
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
@@ -306,7 +337,10 @@ const AdminNavbar = () => {
                   )}
                   <div className="border-t border-gray-100 pt-1">
                     <button
-                      onClick={handleLogout}
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        setShowLogoutConfirmation(true);
+                      }}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200 flex items-center space-x-3 group"
                     >
                       <LogOut className="h-4 w-4 group-hover:translate-x-1 transition-transform" />

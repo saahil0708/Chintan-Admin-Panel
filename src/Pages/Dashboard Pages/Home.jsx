@@ -1,96 +1,31 @@
-import React, { useState } from 'react';
-import { 
-  BarChart3, 
-  Users, 
-  FileText, 
-  Eye, 
-  TrendingUp, 
-  MessageCircle, 
-  Bell, 
-  Settings, 
-  Calendar, 
-  Search,
-  Plus,
-  Edit,
-  Trash2,
-  MoreVertical,
-  Globe,
-  User,
-  Menu,
-  X,
-  Save,
-  Image as ImageIcon,
-  Tag,
-  ChevronDown
+import React, { useState, useEffect } from 'react';
+import {
+  FileText, Eye, Users, MessageCircle, Plus, Edit, Trash2,
+  Clock, AlertTriangle, ChevronDown, Tag, Save, X, Image as ImageIcon
 } from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  BarChart,
-  Bar
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, BarChart, Bar
 } from 'recharts';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useAppContext } from '../../Context/AppContext';
 import '../../Styles/Dashboard.css';
 
-import { useAppContext } from '../../Context/AppContext';
-
 const NewsAdminDashboard = () => {
+  const { backendURL } = useAppContext();
 
-  const { backendURL, isLoading, setIsLoading } = useAppContext();
   // State management
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
   const [chartType, setChartType] = useState('line');
   const [showNewArticleForm, setShowNewArticleForm] = useState(false);
-  const [recentArticles, setRecentArticles] = useState([
-    {
-      id: 1,
-      title: 'Breaking: Major Technology Summit Announces AI Breakthrough',
-      author: 'Sarah Johnson',
-      status: 'Published',
-      views: '12.5K',
-      comments: 45,
-      date: '2024-06-14',
-      category: 'Technology'
-    },
-    {
-      id: 2,
-      title: 'Global Climate Summit Reaches Historic Agreement',
-      author: 'Michael Chen',
-      status: 'Published',
-      views: '8.7K',
-      comments: 32,
-      date: '2024-06-14',
-      category: 'Environment'
-    },
-    {
-      id: 3,
-      title: 'Stock Market Analysis: Weekly Performance Review',
-      author: 'Emma Davis',
-      status: 'Draft',
-      views: '0',
-      comments: 0,
-      date: '2024-06-14',
-      category: 'Business'
-    },
-    {
-      id: 4,
-      title: 'Sports Championship Finals Preview',
-      author: 'Alex Rodriguez',
-      status: 'Scheduled',
-      views: '0',
-      comments: 0,
-      date: '2024-06-15',
-      category: 'Sports'
-    }
-  ]);
+  const [articleType, setArticleType] = useState('regular');
+  const [recentArticles, setRecentArticles] = useState([]);
   const [isPosting, setIsPosting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [editArticle, setEditArticle] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null, type: null });
 
   // Chart data
   const chartData = {
@@ -132,30 +67,262 @@ const NewsAdminDashboard = () => {
     { title: 'Tech Industry Updates', views: '28.9K', engagement: '6.1%' }
   ];
 
-  // New Article Form Component
-  const NewArticleForm = ({ onClose, onSubmit }) => {
-    const [formData, setFormData] = useState({
+  // Fetch recent articles from backend
+  const fetchRecentArticles = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [articlesRes, liveNewsRes, breakingNewsRes] = await Promise.all([
+        axios.get(`${backendURL}/api/articles`),
+        axios.get(`${backendURL}/api/live-news`).catch(e => {
+          console.error('Error fetching live news:', e);
+          return { data: [] };
+        }),
+        axios.get(`${backendURL}/api/breaking-news`).catch(e => {
+          console.error('Error fetching breaking news:', e);
+          return { data: [] };
+        })
+      ]);
+
+      const combined = [
+        ...articlesRes.data.map(item => ({ ...item, type: 'article' })),
+        ...(liveNewsRes?.data || []).map(item => ({ ...item, type: 'live' })),
+        ...(breakingNewsRes?.data || []).map(item => ({ ...item, type: 'breaking' }))
+      ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      setRecentArticles(combined);
+    } catch (error) {
+      console.error('Error fetching articles:', error);
+      setError('Failed to fetch content. Please try again.');
+      toast.error('Failed to fetch some content. Showing available data.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecentArticles();
+  }, [backendURL]);
+
+  // Handler for submitting different article types
+  const handleArticleSubmit = async (articleData, isEdit = false, editId = null, editType = null) => {
+    try {
+      setIsPosting(true);
+      let endpoint = `${backendURL}/api/articles`;
+      let method = 'post';
+      let type = articleType;
+
+      if (isEdit) {
+        type = editType;
+        if (type === 'article') endpoint = `${backendURL}/api/articles/${editId}`;
+        if (type === 'live') endpoint = `${backendURL}/api/live-news/${editId}`;
+        if (type === 'breaking') endpoint = `${backendURL}/api/breaking-news/${editId}`;
+        method = 'put';
+      } else {
+        if (type === 'live') endpoint = `${backendURL}/api/live-news`;
+        if (type === 'breaking') endpoint = `${backendURL}/api/breaking-news`;
+      }
+
+      const config = {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      };
+
+      let response;
+      if (method === 'post') {
+        response = await axios.post(endpoint, articleData, config);
+      } else {
+        response = await axios.put(endpoint, articleData, config);
+      }
+
+      const newArticle = { ...response.data, type };
+      if (isEdit) {
+        setRecentArticles(prev =>
+          prev.map(item => (item._id === newArticle._id ? newArticle : item))
+        );
+        toast.success('Content updated successfully!');
+      } else {
+        setRecentArticles(prev => [newArticle, ...prev]);
+        toast.success(
+          type === 'regular' ? 'Article published successfully!' :
+            type === 'live' ? 'Live news published!' : 'Breaking news published!'
+        );
+      }
+      setShowNewArticleForm(false);
+      setEditArticle(null);
+    } catch (error) {
+      console.error('Error submitting content:', error);
+      toast.error(error.response?.data?.message || 'Error publishing/updating content');
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
+  // Delete article handler
+  const handleDeleteArticle = (id, type) => {
+    setDeleteDialog({ open: true, id, type });
+  };
+
+  // Confirm delete
+  const confirmDelete = async () => {
+    const { id, type } = deleteDialog;
+    if (!id) return;
+
+    try {
+      let endpoint = `${backendURL}/api/articles/${id}`;
+      if (type === 'live') endpoint = `${backendURL}/api/live-news/${id}`;
+      if (type === 'breaking') endpoint = `${backendURL}/api/breaking-news/${id}`;
+
+      await axios.delete(endpoint, { withCredentials: true });
+      setRecentArticles(prev => prev.filter(item => item._id !== id));
+      toast.success('Item deleted successfully');
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      toast.error(
+        error.response?.data?.message ||
+        'Failed to delete item (Server error)'
+      );
+    } finally {
+      setDeleteDialog({ open: false, id: null, type: null });
+    }
+  };
+
+  // Article Form Component
+  const NewArticleForm = ({ onClose, onSubmit, editData, editType }) => {
+    // Form states
+    const [formData, setFormData] = useState(editData && editType === 'article' ? {
+      title: editData.title || '',
+      content: editData.content || '',
+      author: editData.author || '',
+      category: editData.category || '',
+      trending: editData.trending || false,
+      editorsChoice: editData.editorsChoice || false,
+      latestNews: editData.latestNews || false, // <-- ADD THIS
+      tags: editData.tags || [],
+      imageTitle: editData.imageTitle || '',
+      newTag: ''
+    } : {
       title: '',
       content: '',
       author: '',
       category: '',
       trending: false,
       editorsChoice: false,
-      latestNews: false,
+      latestNews: false, // <-- ADD THIS
       tags: [],
       imageTitle: '',
       newTag: ''
     });
 
+    const [liveHeadlines, setLiveHeadlines] = useState(
+      editData && editType === 'live'
+        ? [editData.title || '']
+        : ['']
+    );
+
+    const [breakingData, setBreakingData] = useState(editData && editType === 'breaking' ? {
+      title: editData.title || '',
+      description: editData.description || '',
+      imageUrl: editData.imageUrl || '',
+      reporter: editData.reporter || '',
+      designation: editData.designation || '',
+      category: editData.category || ''
+    } : {
+      title: '',
+      description: '',
+      imageUrl: '',
+      reporter: '',
+      designation: '',
+      category: ''
+    });
+
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(
+      editData?.imageUrl || null
+    );
+    const [isUploading, setIsUploading] = useState(false);
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const categories = ['Technology', 'Environment', 'Business', 'Sports', 'Politics', 'Health', 'Entertainment', 'Science'];
 
+    // Image upload handler
+    const handleImageUpload = async () => {
+      if (!imageFile) return null;
+
+      setIsUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append('image', imageFile);
+
+        const response = await axios.post(
+          `${backendURL}/api/articles/${editData?._id || 'upload'}/image`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+            withCredentials: true
+          }
+        );
+
+        return response.data.imageUrl;
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        toast.error('Failed to upload image');
+        return null;
+      } finally {
+        setIsUploading(false);
+      }
+    };
+
+    // Handlers
     const handleChange = (e) => {
       const { name, value, type, checked } = e.target;
       setFormData(prev => ({
         ...prev,
         [name]: type === 'checkbox' ? checked : value
       }));
+    };
+
+    const handleLiveHeadlineChange = (idx, value) => {
+      setLiveHeadlines(headlines => headlines.map((h, i) => (i === idx ? value : h)));
+    };
+
+    const addLiveHeadline = () => setLiveHeadlines([...liveHeadlines, '']);
+    const removeLiveHeadline = (idx) => setLiveHeadlines(headlines => headlines.filter((_, i) => i !== idx));
+
+    const handleBreakingChange = (e) => {
+      const { name, value } = e.target;
+      setBreakingData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    };
+
+    const handleImageChange = async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        // Validate file type
+        if (!file.type.match('image.*')) {
+          toast.error('Please select an image file (JPEG, PNG, GIF)');
+          return;
+        }
+
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error('Image size must be less than 5MB');
+          return;
+        }
+
+        setImageFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+      }
     };
 
     const handleTagAdd = (e) => {
@@ -177,216 +344,617 @@ const NewsAdminDashboard = () => {
     };
 
     const handleCategorySelect = (category) => {
-      setFormData(prev => ({
-        ...prev,
-        category
-      }));
+      if ((editType || articleType) === 'breaking') {
+        setBreakingData(prev => ({ ...prev, category }));
+      } else {
+        setFormData(prev => ({ ...prev, category }));
+      }
       setIsCategoryOpen(false);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
       e.preventDefault();
-      onSubmit(formData);
+      const type = editType || articleType;
+
+      try {
+        setIsPosting(true);
+
+        if (type === 'breaking') {
+          // 1. Prepare breaking news data (without imageUrl)
+          const breakingPayload = {
+            title: breakingData.title,
+            description: breakingData.description,
+            reporter: breakingData.reporter,
+            designation: breakingData.designation,
+            category: breakingData.category
+          };
+
+          let breakingRes;
+          if (editArticle) {
+            breakingRes = await axios.put(
+              `${backendURL}/api/breaking-news/${editArticle._id}`,
+              breakingPayload,
+              { withCredentials: true }
+            );
+          } else {
+            breakingRes = await axios.post(
+              `${backendURL}/api/breaking-news`,
+              breakingPayload,
+              { withCredentials: true }
+            );
+          }
+
+          let breakingId = editArticle ? editArticle._id : breakingRes.data._id;
+          let imageUrl = breakingRes.data.imageUrl || '';
+
+          // 2. If image file selected, upload it
+          if (imageFile) {
+            const formData = new FormData();
+            formData.append('image', imageFile);
+            const uploadRes = await axios.post(
+              `${backendURL}/api/breaking-news/${breakingId}/image`,
+              formData,
+              {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                withCredentials: true
+              }
+            );
+            imageUrl = uploadRes.data.imageUrl;
+          }
+
+          // 3. Update UI
+          const newBreaking = {
+            ...breakingRes.data,
+            imageUrl,
+            type: 'breaking'
+          };
+          if (editArticle) {
+            setRecentArticles(prev =>
+              prev.map(item => (item._id === newBreaking._id ? newBreaking : item))
+            );
+            toast.success('Breaking news updated!');
+          } else {
+            setRecentArticles(prev => [newBreaking, ...prev]);
+            toast.success('Breaking news published!');
+          }
+          setShowNewArticleForm(false);
+          setEditArticle(null);
+          return;
+        }
+
+        // Regular article and live news logic
+        let endpoint = `${backendURL}/api/articles`;
+        let method = 'post';
+        const contentType = editArticle ? editArticle.type : articleType;
+
+        if (editArticle) {
+          if (contentType === 'article') endpoint = `${backendURL}/api/articles/${editArticle._id}`;
+          if (contentType === 'live') endpoint = `${backendURL}/api/live-news/${editArticle._id}`;
+          if (contentType === 'breaking') endpoint = `${backendURL}/api/breaking-news/${editArticle._id}`;
+          method = 'put';
+        } else {
+          if (contentType === 'live') endpoint = `${backendURL}/api/live-news`;
+          if (contentType === 'breaking') endpoint = `${backendURL}/api/breaking-news`;
+        }
+
+        const config = {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        };
+
+        // FIX: Use formData for articles, liveHeadlines for live news
+        let payload;
+        if (contentType === 'live') {
+          payload = {
+            // headlines: liveHeadlines.filter(h => h.trim() !== ''),
+            title: liveHeadlines[0]
+            // add other fields if needed
+          };
+        } else {
+          payload = {
+            title: formData.title,
+            content: formData.content,
+            author: formData.author || 'Unknown',
+            category: formData.category || 'general',
+            tags: formData.tags || [],
+            trending: formData.trending || false,
+            editorsChoice: formData.editorsChoice || false,
+            latestNews: formData.latestNews || false, // <-- ADD THIS
+            imageTitle: formData.imageTitle || '',
+            // add imageUrl if you handle image upload here
+          };
+        }
+
+        let response;
+        if (method === 'post') {
+          response = await axios.post(endpoint, payload, config);
+        } else {
+          response = await axios.put(endpoint, payload, config);
+        }
+
+        const newArticle = { ...response.data, type: contentType };
+        if (editArticle) {
+          setRecentArticles(prev =>
+            prev.map(item => (item._id === newArticle._id ? newArticle : item))
+          );
+          toast.success('Content updated successfully!');
+        } else {
+          setRecentArticles(prev => [newArticle, ...prev]);
+          toast.success(
+            contentType === 'regular' ? 'Article published successfully!' :
+              contentType === 'live' ? 'Live news published!' : 'Breaking news published!'
+          );
+        }
+        setShowNewArticleForm(false);
+        setEditArticle(null);
+      } catch (error) {
+        console.error('Error submitting content:', error);
+        toast.error(error.response?.data?.message || 'Error publishing/updating content');
+      } finally {
+        setIsPosting(false);
+      }
     };
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
           <div className="border-b border-gray-200 p-4 flex justify-between items-center sticky top-0 bg-white z-10">
-            <h2 className="text-xl font-semibold text-gray-900">Create New Article</h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 transition-colors">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {(editData ? 'Edit' : 'Create New') + ' ' + ((editType || articleType) === 'regular' || (editType || articleType) === 'article' ? 'Article' : (editType || articleType) === 'live' ? 'Live News' : 'Breaking News')}
+              </h2>
+              <div className="flex space-x-2 mt-2">
+                <button
+                  onClick={() => setArticleType('regular')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${(editType || articleType) === 'regular' || (editType || articleType) === 'article'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  disabled={!!editData}
+                >
+                  <FileText size={16} className="inline mr-1" />
+                  Article
+                </button>
+                <button
+                  onClick={() => setArticleType('live')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${(editType || articleType) === 'live'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  disabled={!!editData}
+                >
+                  <Clock size={16} className="inline mr-1" />
+                  Live News
+                </button>
+                <button
+                  onClick={() => setArticleType('breaking')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${(editType || articleType) === 'breaking'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  disabled={!!editData}
+                >
+                  <AlertTriangle size={16} className="inline mr-1" />
+                  Breaking
+                </button>
+              </div>
+            </div>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
               <X size={24} />
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            {/* Form fields */}
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                Article Title *
-              </label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
-                Content *
-              </label>
-              <textarea
-                id="content"
-                name="content"
-                value={formData.content}
-                onChange={handleChange}
-                rows={8}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="author" className="block text-sm font-medium text-gray-700 mb-1">
-                Author *
-              </label>
-              <input
-                type="text"
-                id="author"
-                name="author"
-                value={formData.author}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                required
-              />
-            </div>
-
-            <div className="relative">
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                Category *
-              </label>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                  className="w-full flex justify-between items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-red-500"
-                >
-                  {formData.category || 'Select a category'}
-                  <ChevronDown size={16} className="text-gray-500" />
-                </button>
-                {isCategoryOpen && (
-                  <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 border border-gray-200 max-h-60 overflow-auto">
-                    {categories.map((category) => (
-                      <div
-                        key={category}
-                        onClick={() => handleCategorySelect(category)}
-                        className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
-                          formData.category === category ? 'bg-red-50 text-red-800' : ''
-                        }`}
+            {/* Live News Form */}
+            {(editType || articleType) === 'live' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Headlines *
+                </label>
+                {liveHeadlines.map((headline, idx) => (
+                  <div key={idx} className="flex items-center mb-2">
+                    <input
+                      type="text"
+                      value={headline}
+                      onChange={e => handleLiveHeadlineChange(idx, e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      required
+                      placeholder={`Headline ${idx + 1}`}
+                    />
+                    {liveHeadlines.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeLiveHeadline(idx)}
+                        className="ml-2 text-red-600 hover:text-red-800"
                       >
-                        {category}
-                      </div>
-                    ))}
+                        <X size={18} />
+                      </button>
+                    )}
                   </div>
+                ))}
+                {!(editData && editType === 'live') && (
+                  <button
+                    type="button"
+                    onClick={addLiveHeadline}
+                    className="mt-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                  >
+                    + Add Headline
+                  </button>
                 )}
+                <div className="mt-4">
+                  <p className="text-sm text-gray-500">
+                    Note: Live news will be updated in real-time. Ensure headlines are concise and informative.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
-            <div>
-              <label htmlFor="imageTitle" className="block text-sm font-medium text-gray-700 mb-1">
-                Image Title *
-              </label>
-              <div className="flex items-center space-x-2">
-                <div className="flex-1">
+            {/* Breaking News Form */}
+            {(editType || articleType) === 'breaking' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Title *
+                  </label>
                   <input
                     type="text"
-                    id="imageTitle"
-                    name="imageTitle"
-                    value={formData.imageTitle}
+                    name="title"
+                    value={breakingData.title}
+                    onChange={handleBreakingChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description *
+                  </label>
+                  <textarea
+                    name="description"
+                    value={breakingData.description}
+                    onChange={handleBreakingChange}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Image *
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    <div className="relative">
+                      {breakingData.imageUrl || imagePreview ? (
+                        <div className="group relative">
+                          <img
+                            src={imagePreview || breakingData.imageUrl}
+                            alt="Preview"
+                            className="h-24 w-24 rounded-md object-cover border border-gray-300"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImagePreview(null);
+                              setImageFile(null);
+                              if (!editData) {
+                                setBreakingData(prev => ({ ...prev, imageUrl: '' }));
+                              }
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="h-24 w-24 rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center">
+                          <ImageIcon size={24} className="text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        id="breakingImage"
+                        name="breakingImage"
+                        onChange={handleImageChange}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="breakingImage"
+                        className="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer text-center"
+                      >
+                        {breakingData.imageUrl || imagePreview ? 'Change Image' : 'Upload Image'}
+                      </label>
+                      <p className="mt-1 text-xs text-gray-500">
+                        JPG, PNG or GIF (Max: 5MB)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Reporter *
+                  </label>
+                  <input
+                    type="text"
+                    name="reporter"
+                    value={breakingData.reporter}
+                    onChange={handleBreakingChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Designation *
+                  </label>
+                  <input
+                    type="text"
+                    name="designation"
+                    value={breakingData.designation}
+                    onChange={handleBreakingChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category *
+                  </label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                      className="w-full flex justify-between items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-red-500"
+                    >
+                      {breakingData.category || 'Select a category'}
+                      <ChevronDown size={16} className="text-gray-500" />
+                    </button>
+                    {isCategoryOpen && (
+                      <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 border border-gray-200 max-h-60 overflow-auto">
+                        {categories.map((category) => (
+                          <div
+                            key={category}
+                            onClick={() => {
+                              setBreakingData(prev => ({ ...prev, category }));
+                              setIsCategoryOpen(false);
+                            }}
+                            className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${breakingData.category === category ? 'bg-red-50 text-red-800' : ''}`}
+                          >
+                            {category}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Regular Article Form */}
+            {((editType || articleType) === 'regular' || (editType || articleType) === 'article') && (
+              <>
+                <div>
+                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                    Article Title *
+                  </label>
+                  <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    value={formData.title}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     required
                   />
                 </div>
-                <button
-                  type="button"
-                  className="p-2 bg-gray-100 rounded-md text-gray-700 hover:bg-gray-200 transition-colors"
-                  onClick={() => {
-                    setFormData(prev => ({
-                      ...prev,
-                      imageTitle: 'article-image.jpg'
-                    }));
-                  }}
-                >
-                  <ImageIcon size={18} />
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
-                Tags
-              </label>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {formData.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
-                  >
-                    {tag}
+                <div>
+                  <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+                    Content *
+                  </label>
+                  <textarea
+                    id="content"
+                    name="content"
+                    value={formData.content}
+                    onChange={handleChange}
+                    rows={8}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    required
+                    placeholder="Write your content here..."
+                  />
+                </div>
+                <div>
+                  <label htmlFor="author" className="block text-sm font-medium text-gray-700 mb-1">
+                    Author *
+                  </label>
+                  <input
+                    type="text"
+                    id="author"
+                    name="author"
+                    value={formData.author}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category *
+                  </label>
+                  <div className="relative">
                     <button
                       type="button"
-                      onClick={() => handleTagRemove(tag)}
-                      className="ml-1.5 inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
+                      onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                      className="w-full flex justify-between items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-red-500"
                     >
-                      <X size={12} />
+                      {formData.category || 'Select a category'}
+                      <ChevronDown size={16} className="text-gray-500" />
                     </button>
-                  </span>
-                ))}
-              </div>
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  id="newTag"
-                  name="newTag"
-                  value={formData.newTag}
-                  onChange={handleChange}
-                  placeholder="Add a tag"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-                <button
-                  type="button"
-                  onClick={handleTagAdd}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors flex items-center"
-                >
-                  <Tag size={16} className="mr-1" />
-                  Add
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Article Flags
-              </label>
-              <div className="flex flex-wrap gap-6">
-                <label className="inline-flex items-center">
-                  <input
-                    type="checkbox"
-                    name="trending"
-                    checked={formData.trending}
-                    onChange={handleChange}
-                    className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">Trending</span>
-                </label>
-                <label className="inline-flex items-center">
-                  <input
-                    type="checkbox"
-                    name="editorsChoice"
-                    checked={formData.editorsChoice}
-                    onChange={handleChange}
-                    className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">Editor's Choice</span>
-                </label>
-                <label className="inline-flex items-center">
-                  <input
-                    type="checkbox"
-                    name="latestNews"
-                    checked={formData.latestNews}
-                    onChange={handleChange}
-                    className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">Latest News</span>
-                </label>
-              </div>
-            </div>
+                    {isCategoryOpen && (
+                      <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 border border-gray-200 max-h-60 overflow-auto">
+                        {categories.map((category) => (
+                          <div
+                            key={category}
+                            onClick={() => handleCategorySelect(category)}
+                            className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${formData.category === category ? 'bg-red-50 text-red-800' : ''
+                              }`}
+                          >
+                            {category}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Article Image *
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    <div className="relative">
+                      {imagePreview ? (
+                        <div className="group relative">
+                          <img
+                            src={imagePreview}
+                            alt="Preview"
+                            className="h-24 w-24 rounded-md object-cover border border-gray-300"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImagePreview(null);
+                              setImageFile(null);
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="h-24 w-24 rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center">
+                          <ImageIcon size={24} className="text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        id="image"
+                        name="image"
+                        onChange={handleImageChange}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="image"
+                        className="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer text-center"
+                      >
+                        {imagePreview ? 'Change Image' : 'Upload Image'}
+                      </label>
+                      <p className="mt-1 text-xs text-gray-500">
+                        JPG, PNG or GIF (Max: 5MB)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <label htmlFor="imageTitle" className="block text-sm font-medium text-gray-700 mb-1">
+                      Image Title/Alt Text *
+                    </label>
+                    <input
+                      type="text"
+                      id="imageTitle"
+                      name="imageTitle"
+                      value={formData.imageTitle}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      required
+                      placeholder="Describe the image for accessibility"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
+                    Tags
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {formData.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => handleTagRemove(tag)}
+                          className="ml-1.5 inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      id="newTag"
+                      name="newTag"
+                      value={formData.newTag}
+                      onChange={handleChange}
+                      placeholder="Add a tag"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleTagAdd}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors flex items-center"
+                    >
+                      <Tag size={16} className="mr-1" />
+                      Add
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Article Flags
+                  </label>
+                  <div className="flex flex-wrap gap-6">
+                    <label className="inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        name="trending"
+                        checked={formData.trending}
+                        onChange={handleChange}
+                        className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Trending</span>
+                    </label>
+                    <label className="inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        name="editorsChoice"
+                        checked={formData.editorsChoice}
+                        onChange={handleChange}
+                        className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Editor's Choice</span>
+                    </label>
+                    <label className="inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        name="latestNews"
+                        checked={formData.latestNews}
+                        onChange={handleChange}
+                        className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Latest News</span>
+                    </label>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
               <button
@@ -398,18 +966,21 @@ const NewsAdminDashboard = () => {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-800 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center"
-                disabled={isPosting}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-800 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center justify-center"
+                disabled={isPosting || isUploading}
               >
-                {isPosting ? (
-                  <svg className="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                  </svg>
+                {(isPosting || isUploading) ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    {isUploading ? 'Uploading Image...' : 'Publishing...'}
+                  </>
                 ) : (
                   <>
                     <Save size={16} className="mr-1" />
-                    Save Article
+                    {(editData ? 'Update' : 'Publish') + ' ' + ((editType || articleType) === 'regular' || (editType || articleType) === 'article' ? 'Article' : (editType || articleType) === 'live' ? 'Live Headlines' : 'Breaking News')}
                   </>
                 )}
               </button>
@@ -458,41 +1029,26 @@ const NewsAdminDashboard = () => {
     );
   };
 
-  // Handlers
-  const handleNewArticleSubmit = async (articleData) => {
-    setIsPosting(true);
-    try {
-      const response = await axios.post(`${backendURL}/api/articles`, {
-        title: articleData.title,
-        content: articleData.content,
-        author: articleData.author,
-        category: articleData.category,
-        trending: articleData.trending,
-        editorsChoice: articleData.editorsChoice,
-        latestNews: articleData.latestNews,
-        tags: articleData.tags,
-        imageTitle: articleData.imageTitle,
-      }, { withCredentials: true });
+  const ArticleTypeBadge = ({ type }) => {
+    const getTypeDetails = () => {
+      switch (type) {
+        case 'live':
+          return { icon: <Clock size={14} className="mr-1" />, color: 'bg-blue-100 text-blue-800' };
+        case 'breaking':
+          return { icon: <AlertTriangle size={14} className="mr-1" />, color: 'bg-red-100 text-red-800' };
+        default:
+          return { icon: <FileText size={14} className="mr-1" />, color: 'bg-gray-100 text-gray-800' };
+      }
+    };
 
-      const newArticle = {
-        id: response.data?.id || recentArticles.length + 1,
-        title: response.data?.title || articleData.title,
-        author: response.data?.author || articleData.author,
-        status: response.data?.status || 'Published',
-        views: response.data?.views || '0',
-        comments: response.data?.comments || 0,
-        date: response.data?.date || new Date().toISOString().split('T')[0],
-        category: response.data?.category || articleData.category
-      };
+    const details = getTypeDetails();
 
-      setRecentArticles(prev => [newArticle, ...prev]);
-      setShowNewArticleForm(false);
-      toast.success('Article Published Successfully!');
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Error Publishing Article');
-    } finally {
-      setIsPosting(false);
-    }
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${details.color}`}>
+        {details.icon}
+        {type === 'live' ? 'Live' : type === 'breaking' ? 'Breaking' : 'Article'}
+      </span>
+    );
   };
 
   const currentData = chartData[selectedPeriod];
@@ -514,31 +1070,29 @@ const NewsAdminDashboard = () => {
             {/* Analytics Chart */}
             <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-6 border border-gray-200">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Article Analytics</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Content Analytics</h3>
                 <div className="flex items-center space-x-3">
                   <div className="flex bg-gray-100 rounded-lg p-1">
                     <button
                       onClick={() => setChartType('line')}
-                      className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                        chartType === 'line' 
-                          ? 'bg-white text-gray-900 shadow-sm' 
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
+                      className={`px-3 py-1 text-sm rounded-md transition-colors ${chartType === 'line'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                        }`}
                     >
                       Line
                     </button>
                     <button
                       onClick={() => setChartType('bar')}
-                      className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                        chartType === 'bar' 
-                          ? 'bg-white text-gray-900 shadow-sm' 
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
+                      className={`px-3 py-1 text-sm rounded-md transition-colors ${chartType === 'bar'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                        }`}
                     >
                       Bar
                     </button>
                   </div>
-                  <select 
+                  <select
                     value={selectedPeriod}
                     onChange={(e) => setSelectedPeriod(e.target.value)}
                     className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
@@ -549,28 +1103,28 @@ const NewsAdminDashboard = () => {
                   </select>
                 </div>
               </div>
-              
+
               {/* Interactive Chart */}
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   {chartType === 'line' ? (
                     <LineChart data={currentData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis 
-                        dataKey="date" 
+                      <XAxis
+                        dataKey="date"
                         axisLine={false}
                         tickLine={false}
                         tick={{ fontSize: 12, fill: '#666' }}
                       />
-                      <YAxis 
+                      <YAxis
                         yAxisId="views"
                         orientation="left"
                         axisLine={false}
                         tickLine={false}
                         tick={{ fontSize: 12, fill: '#666' }}
-                        tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(0)}K` : value}
+                        tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}K` : value}
                       />
-                      <YAxis 
+                      <YAxis
                         yAxisId="engagement"
                         orientation="right"
                         axisLine={false}
@@ -579,21 +1133,21 @@ const NewsAdminDashboard = () => {
                         tickFormatter={(value) => `${value}%`}
                       />
                       <Tooltip content={<CustomTooltip />} />
-                      <Line 
+                      <Line
                         yAxisId="views"
-                        type="monotone" 
-                        dataKey="views" 
-                        stroke="#dc2626" 
+                        type="monotone"
+                        dataKey="views"
+                        stroke="#dc2626"
                         strokeWidth={3}
                         dot={{ fill: '#dc2626', strokeWidth: 2, r: 4 }}
                         activeDot={{ r: 6, stroke: '#dc2626', strokeWidth: 2 }}
                         name="Views"
                       />
-                      <Line 
+                      <Line
                         yAxisId="engagement"
-                        type="monotone" 
-                        dataKey="engagement" 
-                        stroke="#059669" 
+                        type="monotone"
+                        dataKey="engagement"
+                        stroke="#059669"
                         strokeWidth={2}
                         dot={{ fill: '#059669', strokeWidth: 2, r: 3 }}
                         name="Engagement"
@@ -602,22 +1156,22 @@ const NewsAdminDashboard = () => {
                   ) : (
                     <BarChart data={currentData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis 
-                        dataKey="date" 
+                      <XAxis
+                        dataKey="date"
                         axisLine={false}
                         tickLine={false}
                         tick={{ fontSize: 12, fill: '#666' }}
                       />
-                      <YAxis 
+                      <YAxis
                         axisLine={false}
                         tickLine={false}
                         tick={{ fontSize: 12, fill: '#666' }}
-                        tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(0)}K` : value}
+                        tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}K` : value}
                       />
                       <Tooltip content={<CustomTooltip />} />
-                      <Bar 
-                        dataKey="views" 
-                        fill="#dc2626" 
+                      <Bar
+                        dataKey="views"
+                        fill="#dc2626"
                         radius={[4, 4, 0, 0]}
                         name="Views"
                       />
@@ -625,7 +1179,7 @@ const NewsAdminDashboard = () => {
                   )}
                 </ResponsiveContainer>
               </div>
-              
+
               {/* Chart Legend */}
               <div className="flex items-center justify-center space-x-6 mt-4 text-sm">
                 <div className="flex items-center space-x-2">
@@ -667,67 +1221,130 @@ const NewsAdminDashboard = () => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Recent Articles</h3>
-                <button 
-                  onClick={() => setShowNewArticleForm(true)}
-                  className="bg-red-800 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center space-x-2 transition-colors"
-                >
-                  <Plus size={16} />
-                  <span>New Article</span>
-                </button>
+                <h3 className="text-lg font-semibold text-gray-900">Recent Content</h3>
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setArticleType('regular');
+                      setEditArticle(null);
+                      setShowNewArticleForm(true);
+                    }}
+                    className="bg-red-800 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center space-x-2 transition-colors"
+                  >
+                    <Plus size={16} />
+                    <span>New Content</span>
+                  </button>
+                </div>
               </div>
             </div>
-            
+
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Views</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comments</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {recentArticles.map((article) => (
-                    <tr key={article.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 truncate max-w-xs">{article.title}</p>
-                          <p className="text-xs text-gray-500">{article.category}</p>
-                        </div>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-4 text-center">
+                        Loading...
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{article.author}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                          article.status === 'Published' ? 'bg-green-100 text-green-800' :
-                          article.status === 'Draft' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {article.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{article.views}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{article.comments}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{article.date}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2">
-                          <button className="text-blue-600 hover:text-blue-800 transition-colors">
-                            <Edit size={16} />
-                          </button>
-                          <button className="text-red-600 hover:text-red-800 transition-colors">
-                            <Trash2 size={16} />
-                          </button>
-                          <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                            <MoreVertical size={16} />
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-4 text-center">
+                        <div className="text-red-600">
+                          {error}
+                          <button
+                            onClick={fetchRecentArticles}
+                            className="ml-2 text-red-800 underline"
+                          >
+                            Retry
                           </button>
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  ) : recentArticles.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                        No content found
+                      </td>
+                    </tr>
+                  ) : (
+                    recentArticles.map((article) => (
+                      <tr key={article._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <ArticleTypeBadge type={article.type} />
+                        </td>
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 truncate max-w-xs">{article.title}</p>
+                            {article.category && (
+                              <p className="text-xs text-gray-500">{article.category}</p>
+                            )}
+                            {/* {article.imageUrl && (
+                              <div className="mt-1">
+                                <img
+                                  src={article.imageUrl}
+                                  alt={article.imageTitle || 'Article image'}
+                                  className="h-10 w-10 rounded-md object-cover"
+                                />
+                              </div>
+                            )} */}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          {article.type === 'breaking'
+                            ? <>
+                              <div>{article.reporter || '-'}</div>
+                            </>
+                            : article.author || '-'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${article.status === 'Published' ? 'bg-green-100 text-green-800' :
+                            article.status === 'Draft' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                            {article.status || 'Published'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          {article.views ? article.views.toLocaleString() : '0'}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          {new Date(article.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              className="text-blue-600 hover:text-blue-800 transition-colors"
+                              onClick={() => {
+                                setEditArticle(article);
+                                setArticleType(article.type === 'article' ? 'regular' : article.type);
+                                setShowNewArticleForm(true);
+                              }}
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteArticle(article._id, article.type)}
+                              className="text-red-600 hover:text-red-800 transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -737,10 +1354,39 @@ const NewsAdminDashboard = () => {
 
       {/* New Article Form Modal */}
       {showNewArticleForm && (
-        <NewArticleForm 
-          onClose={() => setShowNewArticleForm(false)}
-          onSubmit={handleNewArticleSubmit}
+        <NewArticleForm
+          onClose={() => {
+            setShowNewArticleForm(false);
+            setEditArticle(null);
+          }}
+          onSubmit={handleArticleSubmit}
+          editData={editArticle}
+          editType={editArticle ? editArticle.type : null}
         />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteDialog.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h2 className="text-lg font-semibold mb-4 text-gray-900">Delete Article</h2>
+            <p className="mb-6 text-gray-700">Do you want to delete this article?</p>
+            <div className="flex justify-end space-x-3">
+              <button
+                className="px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
+                onClick={() => setDeleteDialog({ open: false, id: null, type: null })}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-red-700 text-white hover:bg-red-800"
+                onClick={confirmDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

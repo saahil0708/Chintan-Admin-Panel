@@ -1,10 +1,60 @@
-.hide-scrollbar {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none;  /* IE and Edge */
+/* Dashboard.css */
+input[type="file"]::file-selector-button {
+  display: none;
 }
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari */
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
-.hide-scrollbar::-webkit-scrollbar-thumb {
-  background: transparent; /* Chrome, Safari */
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Image preview styling */
+.img-preview-container {
+  position: relative;
+  display: inline-block;
+}
+
+.img-preview-container:hover .img-remove-btn {
+  opacity: 1;
+}
+
+.img-remove-btn {
+  position: absolute;
+  top: -0.5rem;
+  right: -0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Table styling */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Form elements */
+.form-input {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-input:focus {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.5);
+}
+
+/* Button transitions */
+.btn-transition {
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-transition:active {
+  transform: scale(0.98);
 }
