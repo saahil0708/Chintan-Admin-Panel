@@ -658,7 +658,7 @@ const NewsAdminDashboard = () => {
                     ? "Live News"
                     : "Breaking News")}
               </h2>
-              <div className="flex space-x-2 mt-2">
+              <div className="flex flex-wrap gap-2 mt-2">
                 <button
                   onClick={() => setArticleType("regular")}
                   className={`px-3 py-1 text-sm rounded-md transition-colors ${
@@ -706,7 +706,7 @@ const NewsAdminDashboard = () => {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-6">
             {/* Live News Form */}
             {(editType || articleType) === "live" && (
               <div>
@@ -782,7 +782,7 @@ const NewsAdminDashboard = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Image
                   </label>
-                  <div className="flex items-center space-x-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="relative">
                       {breakingData.imageUrl || imagePreview ? (
                         <div className="group relative">
@@ -814,7 +814,7 @@ const NewsAdminDashboard = () => {
                         </div>
                       )}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 w-full">
                       <input
                         type="file"
                         id="breakingImage"
@@ -996,7 +996,7 @@ const NewsAdminDashboard = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Article Image
                   </label>
-                  <div className="flex items-center space-x-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="relative">
                       {imagePreview || (editData && editData.imageUrl) ? (
                         <div className="group relative">
@@ -1022,7 +1022,7 @@ const NewsAdminDashboard = () => {
                         </div>
                       )}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 w-full">
                       <input
                         type="file"
                         id="image"
@@ -1086,7 +1086,7 @@ const NewsAdminDashboard = () => {
                       </span>
                     ))}
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="text"
                       id="newTag"
@@ -1099,7 +1099,7 @@ const NewsAdminDashboard = () => {
                     <button
                       type="button"
                       onClick={handleTagAdd}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors flex items-center"
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors flex items-center justify-center"
                     >
                       <Tag size={16} className="mr-1" />
                       Add
@@ -1152,7 +1152,7 @@ const NewsAdminDashboard = () => {
               </>
             )}
 
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-gray-200">
               <button
                 type="button"
                 onClick={onClose}
@@ -1210,7 +1210,7 @@ const NewsAdminDashboard = () => {
     );
   };
 
-  // Helper components remain the same...
+  // Helper components
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
@@ -1234,23 +1234,23 @@ const NewsAdminDashboard = () => {
   const StatCard = ({ stat }) => {
     const Icon = stat.icon;
     return (
-      <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+      <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 border border-gray-200">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+            <p className="text-xl md:text-2xl font-bold text-gray-900 mt-1">
               {stat.value}
             </p>
             <p
-              className={`text-sm mt-1 ${
+              className={`text-xs md:text-sm mt-1 ${
                 stat.change.startsWith("+") ? "text-green-600" : "text-red-600"
               }`}
             >
               {stat.change} from last period
             </p>
           </div>
-          <div className={`p-3 rounded-full bg-gray-100 ${stat.color}`}>
-            <Icon size={24} />
+          <div className={`p-2 md:p-3 rounded-full bg-gray-100 ${stat.color}`}>
+            <Icon size={20} className="md:h-6 md:w-6" />
           </div>
         </div>
       </div>
@@ -1297,26 +1297,26 @@ const NewsAdminDashboard = () => {
   const currentData = chartData[selectedPeriod];
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-gray-50 overflow-hidden">
       {/* Main content */}
       <div className="flex-1 flex flex-col">
         {/* Main content area */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto">
           {/* Stats cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
             {stats.map((stat, index) => (
               <StatCard key={index} stat={stat} />
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
             {/* Analytics Chart */}
-            <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-              <div className="flex items-center justify-between mb-6">
+            <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-4 md:p-6 border border-gray-200">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 md:mb-6">
                 <h3 className="text-lg font-semibold text-gray-900">
                   Content Analytics
                 </h3>
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
                   <div className="flex bg-gray-100 rounded-lg p-1">
                     <button
                       onClick={() => setChartType("line")}
@@ -1342,7 +1342,7 @@ const NewsAdminDashboard = () => {
                   <select
                     value={selectedPeriod}
                     onChange={(e) => setSelectedPeriod(e.target.value)}
-                    className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent w-full sm:w-auto"
                   >
                     <option value="7d">Last 7 days</option>
                     <option value="30d">Last 30 days</option>
@@ -1436,13 +1436,13 @@ const NewsAdminDashboard = () => {
               </div>
 
               {/* Chart Legend */}
-              <div className="flex items-center justify-center space-x-6 mt-4 text-sm">
-                <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-center gap-4 md:gap-6 mt-4 text-sm">
+                <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-red-600 rounded-full"></div>
                   <span className="text-gray-600">Views</span>
                 </div>
                 {chartType === "line" && (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-green-600 rounded-full"></div>
                     <span className="text-gray-600">Engagement Rate</span>
                   </div>
@@ -1451,13 +1451,13 @@ const NewsAdminDashboard = () => {
             </div>
 
             {/* Top Performing Articles */}
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 md:mb-4">
                 Top Performers
               </h3>
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 {topPerformers.map((article, index) => (
-                  <div key={index} className="flex items-start space-x-3">
+                  <div key={index} className="flex items-start gap-3">
                     <span className="flex-shrink-0 w-6 h-6 bg-red-800 text-white text-xs rounded-full flex items-center justify-center font-semibold">
                       {index + 1}
                     </span>
@@ -1465,7 +1465,7 @@ const NewsAdminDashboard = () => {
                       <p className="text-sm font-medium text-gray-900 truncate">
                         {article.title}
                       </p>
-                      <div className="flex items-center space-x-4 mt-1">
+                      <div className="flex items-center gap-4 mt-1">
                         <span className="text-xs text-gray-500">
                           {article.views} views
                         </span>
@@ -1481,20 +1481,20 @@ const NewsAdminDashboard = () => {
           </div>
 
           {/* Recent Articles Table */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-4 py-3 md:px-6 md:py-4 border-b border-gray-200">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <h3 className="text-lg font-semibold text-gray-900">
                   Recent Content
                 </h3>
-                <div className="relative">
+                <div className="relative w-full sm:w-auto">
                   <button
                     onClick={() => {
                       setArticleType("regular");
                       setEditArticle(null);
                       setShowNewArticleForm(true);
                     }}
-                    className="bg-red-800 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center space-x-2 transition-colors"
+                    className="w-full sm:w-auto bg-red-800 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg hover:bg-red-700 flex items-center justify-center gap-1 transition-colors"
                   >
                     <Plus size={16} />
                     <span>New Content</span>
@@ -1507,25 +1507,25 @@ const NewsAdminDashboard = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Type
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Title
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Author
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Views
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -1563,12 +1563,12 @@ const NewsAdminDashboard = () => {
                   ) : (
                     recentArticles.map((article) => (
                       <tr key={article._id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-3 md:px-6 md:py-4">
                           <ArticleTypeBadge type={article.type} />
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-3 md:px-6 md:py-4">
                           <div>
-                            <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                            <p className="text-sm font-medium text-gray-900 truncate max-w-[150px] md:max-w-xs">
                               {article.title}
                             </p>
                             {article.category && (
@@ -1578,7 +1578,7 @@ const NewsAdminDashboard = () => {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
+                        <td className="px-4 py-3 md:px-6 md:py-4 text-sm text-gray-900">
                           {article.type === "breaking" ? (
                             <>
                               <div>{article.reporter || "-"}</div>
@@ -1587,7 +1587,7 @@ const NewsAdminDashboard = () => {
                             article.author || "-"
                           )}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-3 md:px-6 md:py-4">
                           <span
                             className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                               article.status === "Published"
@@ -1600,14 +1600,14 @@ const NewsAdminDashboard = () => {
                             {article.status || "Published"}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
+                        <td className="px-4 py-3 md:px-6 md:py-4 text-sm text-gray-900">
                           {article.views ? article.views.toLocaleString() : "0"}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
+                        <td className="px-4 py-3 md:px-6 md:py-4 text-sm text-gray-900">
                           {new Date(article.createdAt).toLocaleDateString()}
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center space-x-2">
+                        <td className="px-4 py-3 md:px-6 md:py-4">
+                          <div className="flex items-center gap-2">
                             <button
                               className="text-blue-600 hover:text-blue-800 transition-colors"
                               onClick={() => {
@@ -1657,14 +1657,14 @@ const NewsAdminDashboard = () => {
       {/* Delete Confirmation Dialog */}
       {deleteDialog.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
-            <h2 className="text-lg font-semibold mb-4 text-gray-900">
+          <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 max-w-sm w-full mx-4">
+            <h2 className="text-lg font-semibold mb-3 md:mb-4 text-gray-900">
               Delete Article
             </h2>
-            <p className="mb-6 text-gray-700">
+            <p className="mb-4 md:mb-6 text-gray-700">
               Do you want to delete this article?
             </p>
-            <div className="flex justify-end space-x-3">
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
               <button
                 className="px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
                 onClick={() =>
