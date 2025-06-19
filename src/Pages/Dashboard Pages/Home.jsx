@@ -1,40 +1,39 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
+import { FileText, Eye, Users, MessageCircle, Plus, Edit, Trash2, Clock, AlertTriangle, ChevronDown, Tag, Save, X, ImageIcon } from 'lucide-react';
 import {
-  FileText,
-  Eye,
-  Users,
-  MessageCircle,
-  Plus,
-  Edit,
-  Trash2,
-  Clock,
-  AlertTriangle,
-  ChevronDown,
-  Tag,
-  Save,
-  X,
-  ImageIcon,
-} from "lucide-react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts"
-import axios from "axios"
-import { toast } from "react-toastify"
-import { useAppContext } from "../../Context/AppContext"
-import "../../Styles/Dashboard.css"
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+} from "recharts";
+import axios from "axios";
+import { toast } from "react-toastify";
+import { useAppContext } from "../../Context/AppContext";
+import "../../Styles/Dashboard.css";
 
 const NewsAdminDashboard = () => {
-  const { backendURL } = useAppContext()
+  const { backendURL } = useAppContext();
 
   // State management
-  const [selectedPeriod, setSelectedPeriod] = useState("7d")
-  const [chartType, setChartType] = useState("line")
-  const [showNewArticleForm, setShowNewArticleForm] = useState(false)
-  const [articleType, setArticleType] = useState("regular")
-  const [recentArticles, setRecentArticles] = useState([])
-  const [isPosting, setIsPosting] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [editArticle, setEditArticle] = useState(null)
-  const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null, type: null })
+  const [selectedPeriod, setSelectedPeriod] = useState("7d");
+  const [chartType, setChartType] = useState("line");
+  const [showNewArticleForm, setShowNewArticleForm] = useState(false);
+  const [articleType, setArticleType] = useState("regular");
+  const [recentArticles, setRecentArticles] = useState([]);
+  const [isPosting, setIsPosting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [editArticle, setEditArticle] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    id: null,
+    type: null,
+  });
 
   // Chart data
   const chartData = {
@@ -58,87 +57,121 @@ const NewsAdminDashboard = () => {
       { date: "Month 2", views: 380000, articles: 201, engagement: 8.7 },
       { date: "Month 3", views: 420000, articles: 218, engagement: 9.2 },
     ],
-  }
+  };
 
   // Stats cards data
   const stats = [
-    { title: "Total Articles", value: "2,847", change: "+12%", icon: FileText, color: "text-blue-600" },
-    { title: "Total Views", value: "1.2M", change: "+18%", icon: Eye, color: "text-green-600" },
-    { title: "Active Users", value: "45,892", change: "+7%", icon: Users, color: "text-purple-600" },
-    { title: "Comments", value: "8,234", change: "+23%", icon: MessageCircle, color: "text-orange-600" },
-  ]
+    {
+      title: "Total Articles",
+      value: "2,847",
+      change: "+12%",
+      icon: FileText,
+      color: "text-blue-600",
+    },
+    {
+      title: "Total Views",
+      value: "1.2M",
+      change: "+18%",
+      icon: Eye,
+      color: "text-green-600",
+    },
+    {
+      title: "Active Users",
+      value: "45,892",
+      change: "+7%",
+      icon: Users,
+      color: "text-purple-600",
+    },
+    {
+      title: "Comments",
+      value: "8,234",
+      change: "+23%",
+      icon: MessageCircle,
+      color: "text-orange-600",
+    },
+  ];
 
   // Top performing articles
   const topPerformers = [
-    { title: "AI Revolution in Healthcare", views: "45.2K", engagement: "8.4%" },
+    {
+      title: "AI Revolution in Healthcare",
+      views: "45.2K",
+      engagement: "8.4%",
+    },
     { title: "Climate Change Solutions", views: "38.7K", engagement: "7.2%" },
     { title: "Stock Market Trends", views: "32.1K", engagement: "6.8%" },
     { title: "Tech Industry Updates", views: "28.9K", engagement: "6.1%" },
-  ]
+  ];
 
   // Fetch recent articles from backend
   const fetchRecentArticles = async () => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
       const [articlesRes, liveNewsRes, breakingNewsRes] = await Promise.all([
         axios.get(`${backendURL}/api/articles`),
         axios.get(`${backendURL}/api/live-news`).catch((e) => {
-          console.error("Error fetching live news:", e)
-          return { data: [] }
+          console.error("Error fetching live news:", e);
+          return { data: [] };
         }),
         axios.get(`${backendURL}/api/breaking-news`).catch((e) => {
-          console.error("Error fetching breaking news:", e)
-          return { data: [] }
+          console.error("Error fetching breaking news:", e);
+          return { data: [] };
         }),
-      ])
+      ]);
 
       const combined = [
         ...articlesRes.data.map((item) => ({ ...item, type: "article" })),
         ...(liveNewsRes?.data || []).map((item) => ({ ...item, type: "live" })),
-        ...(breakingNewsRes?.data || []).map((item) => ({ ...item, type: "breaking" })),
-      ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        ...(breakingNewsRes?.data || []).map((item) => ({
+          ...item,
+          type: "breaking",
+        })),
+      ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-      setRecentArticles(combined)
+      setRecentArticles(combined);
     } catch (error) {
-      console.error("Error fetching articles:", error)
-      setError("Failed to fetch content. Please try again.")
-      toast.error("Failed to fetch some content. Showing available data.")
+      console.error("Error fetching articles:", error);
+      setError("Failed to fetch content. Please try again.");
+      toast.error("Failed to fetch some content. Showing available data.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchRecentArticles()
-  }, [backendURL])
+    fetchRecentArticles();
+  }, [backendURL]);
 
   // Delete article handler
   const handleDeleteArticle = (id, type) => {
-    setDeleteDialog({ open: true, id, type })
-  }
+    setDeleteDialog({ open: true, id, type });
+  };
 
   // Confirm delete
   const confirmDelete = async () => {
-    const { id, type } = deleteDialog
-    if (!id) return
+    const { id, type } = deleteDialog;
+    if (!id) return;
 
     try {
-      let endpoint = `${backendURL}/api/articles/${id}`
-      if (type === "live") endpoint = `${backendURL}/api/live-news/${id}`
-      if (type === "breaking") endpoint = `${backendURL}/api/breaking-news/${id}`
+      let endpoint = `${backendURL}/api/articles/${id}`;
+      if (type === "live") endpoint = `${backendURL}/api/live-news/${id}`;
+      if (type === "breaking")
+        endpoint = `${backendURL}/api/breaking-news/${id}`;
 
-      await axios.delete(endpoint, { withCredentials: true })
-      setRecentArticles((prev) => prev.filter((item) => item._id !== id))
-      toast.success("Item deleted successfully")
+      await axios.delete(endpoint, { withCredentials: true });
+      setRecentArticles((prev) => prev.filter((item) => item._id !== id));
+      toast.success("Item deleted successfully");
     } catch (error) {
-      console.error("Error deleting item:", error)
-      toast.error(error.response?.data?.message || "Failed to delete item (Server error)")
+      console.error("Error deleting item:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to delete item (Server error)"
+      );
     } finally {
-      setDeleteDialog({ open: false, id: null, type: null })
+      setDeleteDialog({ open: false, id: null, type: null });
     }
-  }
+  };
 
   // Article Form Component
   const NewArticleForm = ({ onClose, editData, editType }) => {
@@ -168,10 +201,12 @@ const NewsAdminDashboard = () => {
             tags: [],
             imageTitle: "",
             newTag: "",
-          },
-    )
+          }
+    );
 
-    const [liveHeadlines, setLiveHeadlines] = useState(editData && editType === "live" ? [editData.title || ""] : [""])
+    const [liveHeadlines, setLiveHeadlines] = useState(
+      editData && editType === "live" ? [editData.title || ""] : [""]
+    );
 
     const [breakingData, setBreakingData] = useState(
       editData && editType === "breaking"
@@ -190,142 +225,150 @@ const NewsAdminDashboard = () => {
             reporter: "",
             designation: "",
             category: "",
-          },
-    )
+          }
+    );
 
-    const [imageFile, setImageFile] = useState(null)
-    const [imagePreview, setImagePreview] = useState(editData?.imageUrl || null)
-    const [isUploading, setIsUploading] = useState(false)
-    const [isCategoryOpen, setIsCategoryOpen] = useState(false)
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(
+      editData?.imageUrl || null
+    );
+    const [isUploading, setIsUploading] = useState(false);
+    const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const categories = [
-      "Technology",
-      "Environment",
-      "Business",
-      "Sports",
-      "Politics",
-      "Health",
-      "Entertainment",
-      "Science",
-    ]
+      "প্রযুক্তি",
+      "খেলা",
+      "বিদেশ",
+      "রাজ্য",
+      "দেশ",
+    ];
 
     // Breaking news image upload
     const uploadBreakingNewsImage = async (breakingNewsId, imageFile) => {
-      if (!imageFile || !breakingNewsId) return null
+      if (!imageFile || !breakingNewsId) return null;
 
-      setIsUploading(true)
+      setIsUploading(true);
       try {
-        const formData = new FormData()
-        formData.append("image", imageFile)
+        const formData = new FormData();
+        formData.append("image", imageFile);
 
-        const response = await axios.post(`${backendURL}/api/breaking-news/${breakingNewsId}/image`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-          withCredentials: true,
-        })
+        const response = await axios.post(
+          `${backendURL}/api/breaking-news/${breakingNewsId}/image`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+            withCredentials: true,
+          }
+        );
 
-        return response.data.imageUrl
+        return response.data.imageUrl;
       } catch (error) {
-        console.error("Error uploading breaking news image:", error)
-        toast.error("Failed to upload image")
-        return null
+        console.error("Error uploading breaking news image:", error);
+        toast.error("Failed to upload image");
+        return null;
       } finally {
-        setIsUploading(false)
+        setIsUploading(false);
       }
-    }
+    };
 
     // Handlers
     const handleChange = (e) => {
-      const { name, value, type, checked } = e.target
+      const { name, value, type, checked } = e.target;
       setFormData((prev) => ({
         ...prev,
         [name]: type === "checkbox" ? checked : value,
-      }))
-    }
+      }));
+    };
 
     const handleLiveHeadlineChange = (idx, value) => {
-      setLiveHeadlines((headlines) => headlines.map((h, i) => (i === idx ? value : h)))
-    }
+      setLiveHeadlines((headlines) =>
+        headlines.map((h, i) => (i === idx ? value : h))
+      );
+    };
 
-    const addLiveHeadline = () => setLiveHeadlines([...liveHeadlines, ""])
-    const removeLiveHeadline = (idx) => setLiveHeadlines((headlines) => headlines.filter((_, i) => i !== idx))
+    const addLiveHeadline = () => setLiveHeadlines([...liveHeadlines, ""]);
+    const removeLiveHeadline = (idx) =>
+      setLiveHeadlines((headlines) => headlines.filter((_, i) => i !== idx));
 
     const handleBreakingChange = (e) => {
-      const { name, value } = e.target
+      const { name, value } = e.target;
       setBreakingData((prev) => ({
         ...prev,
         [name]: value,
-      }))
-    }
+      }));
+    };
 
     const handleImageChange = async (e) => {
-      const file = e.target.files[0]
+      const file = e.target.files[0];
       if (file) {
         console.log("Image file selected:", {
           name: file.name,
           size: file.size,
           type: file.type,
-        })
+        });
 
         // Validate file type
         if (!file.type.match("image.*")) {
-          toast.error("Please select an image file (JPEG, PNG, GIF)")
-          return
+          toast.error("Please select an image file (JPEG, PNG, GIF)");
+          return;
         }
 
         // Validate file size (5MB max)
         if (file.size > 5 * 1024 * 1024) {
-          toast.error("Image size must be less than 5MB")
-          return
+          toast.error("Image size must be less than 5MB");
+          return;
         }
 
-        setImageFile(file)
-        const reader = new FileReader()
+        setImageFile(file);
+        const reader = new FileReader();
         reader.onloadend = () => {
-          setImagePreview(reader.result)
-        }
-        reader.readAsDataURL(file)
+          setImagePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
       }
-    }
+    };
 
     const handleTagAdd = (e) => {
-      e.preventDefault()
-      if (formData.newTag.trim() && !formData.tags.includes(formData.newTag.trim())) {
+      e.preventDefault();
+      if (
+        formData.newTag.trim() &&
+        !formData.tags.includes(formData.newTag.trim())
+      ) {
         setFormData((prev) => ({
           ...prev,
           tags: [...prev.tags, prev.newTag.trim()],
           newTag: "",
-        }))
+        }));
       }
-    }
+    };
 
     const handleTagRemove = (tagToRemove) => {
       setFormData((prev) => ({
         ...prev,
         tags: prev.tags.filter((tag) => tag !== tagToRemove),
-      }))
-    }
+      }));
+    };
 
     const handleCategorySelect = (category) => {
       if ((editType || articleType) === "breaking") {
-        setBreakingData((prev) => ({ ...prev, category }))
+        setBreakingData((prev) => ({ ...prev, category }));
       } else {
-        setFormData((prev) => ({ ...prev, category }))
+        setFormData((prev) => ({ ...prev, category }));
       }
-      setIsCategoryOpen(false)
-    }
+      setIsCategoryOpen(false);
+    };
 
     const handleSubmit = async (e) => {
-      e.preventDefault()
-      const type = editType || articleType
+      e.preventDefault();
+      const type = editType || articleType;
 
-      console.log("=== FORM SUBMISSION START ===")
-      console.log("Article type:", type)
-      console.log("Image file:", imageFile)
-      console.log("Form data:", formData)
+      console.log("=== FORM SUBMISSION START ===");
+      console.log("Article type:", type);
+      console.log("Live headlines:", liveHeadlines);
 
       try {
-        setIsPosting(true)
+        setIsPosting(true);
 
         if (type === "breaking") {
           // Handle breaking news with image upload
@@ -335,29 +378,42 @@ const NewsAdminDashboard = () => {
             reporter: breakingData.reporter,
             designation: breakingData.designation,
             category: breakingData.category,
-          }
+          };
 
-          let breakingRes
+          let breakingRes;
           if (editArticle) {
             // Update existing breaking news
-            breakingRes = await axios.put(`${backendURL}/api/breaking-news/${editArticle._id}`, breakingPayload, {
-              withCredentials: true,
-            })
+            breakingRes = await axios.put(
+              `${backendURL}/api/breaking-news/${editArticle._id}`,
+              breakingPayload,
+              {
+                withCredentials: true,
+              }
+            );
           } else {
             // Create new breaking news
-            breakingRes = await axios.post(`${backendURL}/api/breaking-news`, breakingPayload, {
-              withCredentials: true,
-            })
+            breakingRes = await axios.post(
+              `${backendURL}/api/breaking-news`,
+              breakingPayload,
+              {
+                withCredentials: true,
+              }
+            );
           }
 
-          const breakingId = editArticle ? editArticle._id : breakingRes.data._id
-          let imageUrl = breakingRes.data.imageUrl || ""
+          const breakingId = editArticle
+            ? editArticle._id
+            : breakingRes.data._id;
+          let imageUrl = breakingRes.data.imageUrl || "";
 
           // Upload image if provided
           if (imageFile) {
-            const uploadedImageUrl = await uploadBreakingNewsImage(breakingId, imageFile)
+            const uploadedImageUrl = await uploadBreakingNewsImage(
+              breakingId,
+              imageFile
+            );
             if (uploadedImageUrl) {
-              imageUrl = uploadedImageUrl
+              imageUrl = uploadedImageUrl;
             }
           }
 
@@ -366,173 +422,226 @@ const NewsAdminDashboard = () => {
             ...breakingRes.data,
             imageUrl,
             type: "breaking",
-          }
+          };
 
           if (editArticle) {
-            setRecentArticles((prev) => prev.map((item) => (item._id === newBreaking._id ? newBreaking : item)))
-            toast.success("Breaking news updated!")
+            setRecentArticles((prev) =>
+              prev.map((item) =>
+                item._id === newBreaking._id ? newBreaking : item
+              )
+            );
+            toast.success("Breaking news updated!");
           } else {
-            setRecentArticles((prev) => [newBreaking, ...prev])
-            toast.success("Breaking news published!")
+            setRecentArticles((prev) => [newBreaking, ...prev]);
+            toast.success("Breaking news published!");
           }
 
-          setShowNewArticleForm(false)
-          setEditArticle(null)
-          return
+          setShowNewArticleForm(false);
+          setEditArticle(null);
+          return;
         }
 
-        // Handle regular articles and live news
-        let endpoint = `${backendURL}/api/articles`
-        let method = "post"
-        const contentType = editArticle ? editArticle.type : articleType
+        // Handle live news - FIXED: Submit all headlines
+        if (type === "live") {
+          console.log("Processing live news with headlines:", liveHeadlines);
+          
+          // Filter out empty headlines
+          const validHeadlines = liveHeadlines.filter(headline => headline.trim() !== "");
+          
+          if (validHeadlines.length === 0) {
+            toast.error("Please add at least one headline");
+            return;
+          }
+
+          console.log("Valid headlines to submit:", validHeadlines);
+
+          // Submit each headline as a separate live news item
+          const submissionPromises = validHeadlines.map(async (headline) => {
+            const payload = { title: headline.trim() };
+            console.log("Submitting headline:", payload);
+
+            if (editArticle && validHeadlines.length === 1) {
+              // If editing and only one headline, update the existing one
+              return await axios.put(
+                `${backendURL}/api/live-news/${editArticle._id}`,
+                payload,
+                { withCredentials: true }
+              );
+            } else {
+              // Create new live news item
+              return await axios.post(
+                `${backendURL}/api/live-news`,
+                payload,
+                { withCredentials: true }
+              );
+            }
+          });
+
+          const responses = await Promise.all(submissionPromises);
+          console.log("All live news responses:", responses);
+
+          // Update UI with all new live news items
+          const newLiveNews = responses.map(response => ({
+            ...response.data,
+            type: "live"
+          }));
+
+          if (editArticle && validHeadlines.length === 1) {
+            // Update existing item
+            setRecentArticles((prev) =>
+              prev.map((item) =>
+                item._id === newLiveNews[0]._id ? newLiveNews[0] : item
+              )
+            );
+            toast.success("Live news updated!");
+          } else {
+            // Add new items
+            setRecentArticles((prev) => [...newLiveNews, ...prev]);
+            toast.success(`${validHeadlines.length} live news headlines published!`);
+          }
+
+          setShowNewArticleForm(false);
+          setEditArticle(null);
+          return;
+        }
+
+        // Handle regular articles
+        let endpoint = `${backendURL}/api/articles`;
+        let method = "post";
 
         if (editArticle) {
-          if (contentType === "article") endpoint = `${backendURL}/api/articles/${editArticle._id}`
-          if (contentType === "live") endpoint = `${backendURL}/api/live-news/${editArticle._id}`
-          method = "put"
-        } else {
-          if (contentType === "live") endpoint = `${backendURL}/api/live-news`
+          endpoint = `${backendURL}/api/articles/${editArticle._id}`;
+          method = "put";
         }
 
-        console.log("API endpoint:", endpoint)
-        console.log("HTTP method:", method)
+        console.log("API endpoint:", endpoint);
+        console.log("HTTP method:", method);
 
         const config = {
           withCredentials: true,
           headers: {
             "Content-Type": "application/json",
           },
-        }
+        };
 
-        // Prepare payload based on content type
-        let payload
-        if (contentType === "live") {
-          payload = {
-            title: liveHeadlines[0] || "",
-          }
-        } else {
-          // Regular article
-          payload = {
-            title: formData.title,
-            content: formData.content,
-            author: formData.author || "Unknown",
-            category: formData.category || "general",
-            tags: formData.tags || [],
-            trending: formData.trending || false,
-            editorsChoice: formData.editorsChoice || false,
-            latestNews: formData.latestNews || false,
-            imageTitle: formData.imageTitle || "",
-          }
-        }
+        // Regular article payload
+        const payload = {
+          title: formData.title,
+          content: formData.content,
+          author: formData.author || "Unknown",
+          category: formData.category || "general",
+          tags: formData.tags || [],
+          trending: formData.trending || false,
+          editorsChoice: formData.editorsChoice || false,
+          latestNews: formData.latestNews || false,
+          imageTitle: formData.imageTitle || "",
+        };
 
-        console.log("Article payload:", payload)
+        console.log("Article payload:", payload);
 
-        // Submit article/live news
-        let response
+        // Submit article
+        let response;
         if (method === "post") {
-          response = await axios.post(endpoint, payload, config)
+          response = await axios.post(endpoint, payload, config);
         } else {
-          response = await axios.put(endpoint, payload, config)
+          response = await axios.put(endpoint, payload, config);
         }
 
-        console.log("Article creation response:", response.data)
+        console.log("Article creation response:", response.data);
 
-        const finalArticle = { ...response.data, type: contentType }
-
-        console.log("=== CHECKING IMAGE UPLOAD CONDITIONS ===")
-        console.log("contentType:", contentType)
-        console.log("imageFile exists:", !!imageFile)
-        console.log("Should upload image:", (contentType === "article" || contentType === "regular") && imageFile)
+        const finalArticle = { ...response.data, type: "article" };
 
         // Upload image for regular articles if provided
-        if ((contentType === "article" || contentType === "regular") && imageFile) {
-          const articleId = editArticle ? editArticle._id : response.data._id
-          console.log("=== STARTING IMAGE UPLOAD ===")
-          console.log("Article ID:", articleId)
-          console.log("Image file details:", {
-            name: imageFile.name,
-            size: imageFile.size,
-            type: imageFile.type,
-          })
+        if (imageFile) {
+          const articleId = editArticle ? editArticle._id : response.data._id;
+          console.log("=== STARTING IMAGE UPLOAD ===");
+          console.log("Article ID:", articleId);
 
-          const imageFormData = new FormData()
-          imageFormData.append("image", imageFile)
+          const imageFormData = new FormData();
+          imageFormData.append("image", imageFile);
 
           // Add imageTitle if provided
           if (formData.imageTitle) {
-            imageFormData.append("imageTitle", formData.imageTitle)
-          }
-
-          console.log("FormData contents:")
-          for (const pair of imageFormData.entries()) {
-            console.log(pair[0], pair[1])
+            imageFormData.append("imageTitle", formData.imageTitle);
           }
 
           try {
-            setIsUploading(true)
-            console.log("Making image upload request to:", `${backendURL}/api/articles/${articleId}/image`)
+            setIsUploading(true);
+            console.log(
+              "Making image upload request to:",
+              `${backendURL}/api/articles/${articleId}/image`
+            );
 
-            const imageResponse = await axios.post(`${backendURL}/api/articles/${articleId}/image`, imageFormData, {
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-              withCredentials: true,
-              timeout: 30000, // 30 second timeout
-            })
+            const imageResponse = await axios.post(
+              `${backendURL}/api/articles/${articleId}/image`,
+              imageFormData,
+              {
+                headers: {
+                  "Content-Type": "multipart/form-data",
+                },
+                withCredentials: true,
+                timeout: 30000, // 30 second timeout
+              }
+            );
 
-            console.log("=== IMAGE UPLOAD SUCCESS ===")
-            console.log("Image upload response:", imageResponse.data)
+            console.log("=== IMAGE UPLOAD SUCCESS ===");
+            console.log("Image upload response:", imageResponse.data);
 
             if (imageResponse.data.success && imageResponse.data.imageUrl) {
-              finalArticle.imageUrl = imageResponse.data.imageUrl
-              console.log("Final article with image:", finalArticle)
-              toast.success("Article and image uploaded successfully!")
+              finalArticle.imageUrl = imageResponse.data.imageUrl;
+              console.log("Final article with image:", finalArticle);
+              toast.success("Article and image uploaded successfully!");
             } else {
-              console.error("Image upload response missing imageUrl:", imageResponse.data)
-              toast.warning("Article created but image upload response was unexpected")
+              console.error(
+                "Image upload response missing imageUrl:",
+                imageResponse.data
+              );
+              toast.warning(
+                "Article created but image upload response was unexpected"
+              );
             }
           } catch (imageError) {
-            console.error("=== IMAGE UPLOAD ERROR ===")
-            console.error("Error details:", imageError)
-            console.error("Error response:", imageError.response?.data)
-            console.error("Error status:", imageError.response?.status)
+            console.error("=== IMAGE UPLOAD ERROR ===");
+            console.error("Error details:", imageError);
             toast.error(
-              `Article created but image upload failed: ${imageError.response?.data?.message || imageError.message}`,
-            )
+              `Article created but image upload failed: ${
+                imageError.response?.data?.message || imageError.message
+              }`
+            );
           } finally {
-            setIsUploading(false)
+            setIsUploading(false);
           }
         }
 
         // Update UI
         if (editArticle) {
-          setRecentArticles((prev) => prev.map((item) => (item._id === finalArticle._id ? finalArticle : item)))
-          toast.success("Content updated successfully!")
-        } else {
-          setRecentArticles((prev) => [finalArticle, ...prev])
-          if (!imageFile || contentType !== "article") {
-            toast.success(
-              contentType === "article"
-                ? "Article published successfully!"
-                : contentType === "live"
-                  ? "Live news published!"
-                  : "Content published!",
+          setRecentArticles((prev) =>
+            prev.map((item) =>
+              item._id === finalArticle._id ? finalArticle : item
             )
+          );
+          toast.success("Article updated successfully!");
+        } else {
+          setRecentArticles((prev) => [finalArticle, ...prev]);
+          if (!imageFile) {
+            toast.success("Article published successfully!");
           }
         }
 
-        setShowNewArticleForm(false)
-        setEditArticle(null)
+        setShowNewArticleForm(false);
+        setEditArticle(null);
       } catch (error) {
-        console.error("=== FORM SUBMISSION ERROR ===")
-        console.error("Error details:", error)
-        console.error("Error response:", error.response?.data)
-        toast.error(error.response?.data?.message || "Error publishing/updating content")
+        console.error("=== FORM SUBMISSION ERROR ===");
+        console.error("Error details:", error);
+        console.error("Error response:", error.response?.data);
+        toast.error(
+          error.response?.data?.message || "Error publishing/updating content"
+        );
       } finally {
-        setIsPosting(false)
-        console.log("=== FORM SUBMISSION END ===")
+        setIsPosting(false);
+        console.log("=== FORM SUBMISSION END ===");
       }
-    }
+    };
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -542,17 +651,19 @@ const NewsAdminDashboard = () => {
               <h2 className="text-xl font-semibold text-gray-900">
                 {(editData ? "Edit" : "Create New") +
                   " " +
-                  ((editType || articleType) === "regular" || (editType || articleType) === "article"
+                  ((editType || articleType) === "regular" ||
+                  (editType || articleType) === "article"
                     ? "Article"
                     : (editType || articleType) === "live"
-                      ? "Live News"
-                      : "Breaking News")}
+                    ? "Live News"
+                    : "Breaking News")}
               </h2>
               <div className="flex space-x-2 mt-2">
                 <button
                   onClick={() => setArticleType("regular")}
                   className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                    (editType || articleType) === "regular" || (editType || articleType) === "article"
+                    (editType || articleType) === "regular" ||
+                    (editType || articleType) === "article"
                       ? "bg-red-100 text-red-800"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
@@ -587,7 +698,10 @@ const NewsAdminDashboard = () => {
                 </button>
               </div>
             </div>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
               <X size={24} />
             </button>
           </div>
@@ -596,15 +710,19 @@ const NewsAdminDashboard = () => {
             {/* Live News Form */}
             {(editType || articleType) === "live" && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Headlines *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Headlines *
+                </label>
                 {liveHeadlines.map((headline, idx) => (
                   <div key={idx} className="flex items-center mb-2">
                     <input
                       type="text"
                       value={headline}
-                      onChange={(e) => handleLiveHeadlineChange(idx, e.target.value)}
+                      onChange={(e) =>
+                        handleLiveHeadlineChange(idx, e.target.value)
+                      }
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                      required
+                      required={idx === 0} // Only first headline is required
                       placeholder={`Headline ${idx + 1}`}
                     />
                     {liveHeadlines.length > 1 && (
@@ -618,15 +736,16 @@ const NewsAdminDashboard = () => {
                     )}
                   </div>
                 ))}
-                {!(editData && editType === "live") && (
-                  <button
-                    type="button"
-                    onClick={addLiveHeadline}
-                    className="mt-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                  >
-                    + Add Headline
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={addLiveHeadline}
+                  className="mt-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                >
+                  + Add Headline
+                </button>
+                <p className="mt-2 text-sm text-gray-500">
+                  Each headline will be published as a separate live news item. Empty headlines will be ignored.
+                </p>
               </div>
             )}
 
@@ -634,7 +753,9 @@ const NewsAdminDashboard = () => {
             {(editType || articleType) === "breaking" && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Title *
+                  </label>
                   <input
                     type="text"
                     name="title"
@@ -645,7 +766,9 @@ const NewsAdminDashboard = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description *
+                  </label>
                   <textarea
                     name="description"
                     value={breakingData.description}
@@ -656,7 +779,9 @@ const NewsAdminDashboard = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Image
+                  </label>
                   <div className="flex items-center space-x-4">
                     <div className="relative">
                       {breakingData.imageUrl || imagePreview ? (
@@ -669,10 +794,13 @@ const NewsAdminDashboard = () => {
                           <button
                             type="button"
                             onClick={() => {
-                              setImagePreview(null)
-                              setImageFile(null)
+                              setImagePreview(null);
+                              setImageFile(null);
                               if (!editData) {
-                                setBreakingData((prev) => ({ ...prev, imageUrl: "" }))
+                                setBreakingData((prev) => ({
+                                  ...prev,
+                                  imageUrl: "",
+                                }));
                               }
                             }}
                             className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -699,14 +827,20 @@ const NewsAdminDashboard = () => {
                         htmlFor="breakingImage"
                         className="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer text-center"
                       >
-                        {breakingData.imageUrl || imagePreview ? "Change Image" : "Upload Image"}
+                        {breakingData.imageUrl || imagePreview
+                          ? "Change Image"
+                          : "Upload Image"}
                       </label>
-                      <p className="mt-1 text-xs text-gray-500">JPG, PNG or GIF (Max: 5MB)</p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        JPG, PNG or GIF (Max: 5MB)
+                      </p>
                     </div>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Reporter *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Reporter *
+                  </label>
                   <input
                     type="text"
                     name="reporter"
@@ -717,7 +851,9 @@ const NewsAdminDashboard = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Designation *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Designation *
+                  </label>
                   <input
                     type="text"
                     name="designation"
@@ -728,7 +864,9 @@ const NewsAdminDashboard = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category *
+                  </label>
                   <div className="relative">
                     <button
                       type="button"
@@ -744,10 +882,17 @@ const NewsAdminDashboard = () => {
                           <div
                             key={category}
                             onClick={() => {
-                              setBreakingData((prev) => ({ ...prev, category }))
-                              setIsCategoryOpen(false)
+                              setBreakingData((prev) => ({
+                                ...prev,
+                                category,
+                              }));
+                              setIsCategoryOpen(false);
                             }}
-                            className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${breakingData.category === category ? "bg-red-50 text-red-800" : ""}`}
+                            className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                              breakingData.category === category
+                                ? "bg-red-50 text-red-800"
+                                : ""
+                            }`}
                           >
                             {category}
                           </div>
@@ -760,10 +905,14 @@ const NewsAdminDashboard = () => {
             )}
 
             {/* Regular Article Form */}
-            {((editType || articleType) === "regular" || (editType || articleType) === "article") && (
+            {((editType || articleType) === "regular" ||
+              (editType || articleType) === "article") && (
               <>
                 <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="title"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Article Title *
                   </label>
                   <input
@@ -777,7 +926,10 @@ const NewsAdminDashboard = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="content"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Content *
                   </label>
                   <textarea
@@ -792,7 +944,10 @@ const NewsAdminDashboard = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="author" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="author"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Author *
                   </label>
                   <input
@@ -806,7 +961,9 @@ const NewsAdminDashboard = () => {
                   />
                 </div>
                 <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category *
+                  </label>
                   <div className="relative">
                     <button
                       type="button"
@@ -823,7 +980,9 @@ const NewsAdminDashboard = () => {
                             key={category}
                             onClick={() => handleCategorySelect(category)}
                             className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
-                              formData.category === category ? "bg-red-50 text-red-800" : ""
+                              formData.category === category
+                                ? "bg-red-50 text-red-800"
+                                : ""
                             }`}
                           >
                             {category}
@@ -834,7 +993,9 @@ const NewsAdminDashboard = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Article Image</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Article Image
+                  </label>
                   <div className="flex items-center space-x-4">
                     <div className="relative">
                       {imagePreview || (editData && editData.imageUrl) ? (
@@ -847,8 +1008,8 @@ const NewsAdminDashboard = () => {
                           <button
                             type="button"
                             onClick={() => {
-                              setImagePreview(null)
-                              setImageFile(null)
+                              setImagePreview(null);
+                              setImageFile(null);
                             }}
                             className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
@@ -874,13 +1035,20 @@ const NewsAdminDashboard = () => {
                         htmlFor="image"
                         className="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer text-center"
                       >
-                        {imagePreview || (editData && editData.imageUrl) ? "Change Image" : "Upload Image"}
+                        {imagePreview || (editData && editData.imageUrl)
+                          ? "Change Image"
+                          : "Upload Image"}
                       </label>
-                      <p className="mt-1 text-xs text-gray-500">JPG, PNG or GIF (Max: 5MB)</p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        JPG, PNG or GIF (Max: 5MB)
+                      </p>
                     </div>
                   </div>
                   <div className="mt-2">
-                    <label htmlFor="imageTitle" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="imageTitle"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Image Title/Alt Text
                     </label>
                     <input
@@ -895,7 +1063,10 @@ const NewsAdminDashboard = () => {
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="tags"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Tags
                   </label>
                   <div className="flex flex-wrap gap-2 mb-2">
@@ -936,7 +1107,9 @@ const NewsAdminDashboard = () => {
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Article Flags</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Article Flags
+                  </label>
                   <div className="flex flex-wrap gap-6">
                     <label className="inline-flex items-center">
                       <input
@@ -946,7 +1119,9 @@ const NewsAdminDashboard = () => {
                         onChange={handleChange}
                         className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Trending</span>
+                      <span className="ml-2 text-sm text-gray-700">
+                        Trending
+                      </span>
                     </label>
                     <label className="inline-flex items-center">
                       <input
@@ -956,7 +1131,9 @@ const NewsAdminDashboard = () => {
                         onChange={handleChange}
                         className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Editor's Choice</span>
+                      <span className="ml-2 text-sm text-gray-700">
+                        Editor's Choice
+                      </span>
                     </label>
                     <label className="inline-flex items-center">
                       <input
@@ -966,7 +1143,9 @@ const NewsAdminDashboard = () => {
                         onChange={handleChange}
                         className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Latest News</span>
+                      <span className="ml-2 text-sm text-gray-700">
+                        Latest News
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -1002,7 +1181,11 @@ const NewsAdminDashboard = () => {
                         stroke="currentColor"
                         strokeWidth="4"
                       ></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8H4z"
+                      ></path>
                     </svg>
                     {isUploading ? "Uploading Image..." : "Publishing..."}
                   </>
@@ -1011,11 +1194,12 @@ const NewsAdminDashboard = () => {
                     <Save size={16} className="mr-1" />
                     {(editData ? "Update" : "Publish") +
                       " " +
-                      ((editType || articleType) === "regular" || (editType || articleType) === "article"
+                      ((editType || articleType) === "regular" ||
+                      (editType || articleType) === "article"
                         ? "Article"
                         : (editType || articleType) === "live"
-                          ? "Live Headlines"
-                          : "Breaking News")}
+                        ? "Live Headlines"
+                        : "Breaking News")}
                   </>
                 )}
               </button>
@@ -1023,8 +1207,8 @@ const NewsAdminDashboard = () => {
           </form>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   // Helper components remain the same...
   const CustomTooltip = ({ active, payload, label }) => {
@@ -1034,25 +1218,34 @@ const NewsAdminDashboard = () => {
           <p className="font-medium text-gray-900">{label}</p>
           {payload.map((entry, index) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.name === "views" ? entry.value.toLocaleString() : entry.value}
+              {entry.name}:{" "}
+              {entry.name === "views"
+                ? entry.value.toLocaleString()
+                : entry.value}
               {entry.name === "engagement" && "%"}
             </p>
           ))}
         </div>
-      )
+      );
     }
-    return null
-  }
+    return null;
+  };
 
   const StatCard = ({ stat }) => {
-    const Icon = stat.icon
+    const Icon = stat.icon;
     return (
       <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-            <p className={`text-sm mt-1 ${stat.change.startsWith("+") ? "text-green-600" : "text-red-600"}`}>
+            <p className="text-2xl font-bold text-gray-900 mt-1">
+              {stat.value}
+            </p>
+            <p
+              className={`text-sm mt-1 ${
+                stat.change.startsWith("+") ? "text-green-600" : "text-red-600"
+              }`}
+            >
               {stat.change} from last period
             </p>
           </div>
@@ -1061,32 +1254,47 @@ const NewsAdminDashboard = () => {
           </div>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   const ArticleTypeBadge = ({ type }) => {
     const getTypeDetails = () => {
       switch (type) {
         case "live":
-          return { icon: <Clock size={14} className="mr-1" />, color: "bg-blue-100 text-blue-800" }
+          return {
+            icon: <Clock size={14} className="mr-1" />,
+            color: "bg-blue-100 text-blue-800",
+          };
         case "breaking":
-          return { icon: <AlertTriangle size={14} className="mr-1" />, color: "bg-red-100 text-red-800" }
+          return {
+            icon: <AlertTriangle size={14} className="mr-1" />,
+            color: "bg-red-100 text-red-800",
+          };
         default:
-          return { icon: <FileText size={14} className="mr-1" />, color: "bg-gray-100 text-gray-800" }
+          return {
+            icon: <FileText size={14} className="mr-1" />,
+            color: "bg-gray-100 text-gray-800",
+          };
       }
-    }
+    };
 
-    const details = getTypeDetails()
+    const details = getTypeDetails();
 
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${details.color}`}>
+      <span
+        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${details.color}`}
+      >
         {details.icon}
-        {type === "live" ? "Live" : type === "breaking" ? "Breaking" : "Article"}
+        {type === "live"
+          ? "Live"
+          : type === "breaking"
+          ? "Breaking"
+          : "Article"}
       </span>
-    )
-  }
+    );
+  };
 
-  const currentData = chartData[selectedPeriod]
+  const currentData = chartData[selectedPeriod];
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -1105,13 +1313,17 @@ const NewsAdminDashboard = () => {
             {/* Analytics Chart */}
             <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-6 border border-gray-200">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Content Analytics</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Content Analytics
+                </h3>
                 <div className="flex items-center space-x-3">
                   <div className="flex bg-gray-100 rounded-lg p-1">
                     <button
                       onClick={() => setChartType("line")}
                       className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                        chartType === "line" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
+                        chartType === "line"
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
                       }`}
                     >
                       Line
@@ -1119,7 +1331,9 @@ const NewsAdminDashboard = () => {
                     <button
                       onClick={() => setChartType("bar")}
                       className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                        chartType === "bar" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
+                        chartType === "bar"
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
                       }`}
                     >
                       Bar
@@ -1143,14 +1357,23 @@ const NewsAdminDashboard = () => {
                   {chartType === "line" ? (
                     <LineChart data={currentData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#666" }} />
+                      <XAxis
+                        dataKey="date"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "#666" }}
+                      />
                       <YAxis
                         yAxisId="views"
                         orientation="left"
                         axisLine={false}
                         tickLine={false}
                         tick={{ fontSize: 12, fill: "#666" }}
-                        tickFormatter={(value) => (value >= 1000 ? `${(value / 1000).toFixed(0)}K` : value)}
+                        tickFormatter={(value) =>
+                          value >= 1000
+                            ? `${(value / 1000).toFixed(0)}K`
+                            : value
+                        }
                       />
                       <YAxis
                         yAxisId="engagement"
@@ -1184,15 +1407,29 @@ const NewsAdminDashboard = () => {
                   ) : (
                     <BarChart data={currentData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#666" }} />
+                      <XAxis
+                        dataKey="date"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "#666" }}
+                      />
                       <YAxis
                         axisLine={false}
                         tickLine={false}
                         tick={{ fontSize: 12, fill: "#666" }}
-                        tickFormatter={(value) => (value >= 1000 ? `${(value / 1000).toFixed(0)}K` : value)}
+                        tickFormatter={(value) =>
+                          value >= 1000
+                            ? `${(value / 1000).toFixed(0)}K`
+                            : value
+                        }
                       />
                       <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="views" fill="#dc2626" radius={[4, 4, 0, 0]} name="Views" />
+                      <Bar
+                        dataKey="views"
+                        fill="#dc2626"
+                        radius={[4, 4, 0, 0]}
+                        name="Views"
+                      />
                     </BarChart>
                   )}
                 </ResponsiveContainer>
@@ -1215,7 +1452,9 @@ const NewsAdminDashboard = () => {
 
             {/* Top Performing Articles */}
             <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performers</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Top Performers
+              </h3>
               <div className="space-y-4">
                 {topPerformers.map((article, index) => (
                   <div key={index} className="flex items-start space-x-3">
@@ -1223,10 +1462,16 @@ const NewsAdminDashboard = () => {
                       {index + 1}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{article.title}</p>
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {article.title}
+                      </p>
                       <div className="flex items-center space-x-4 mt-1">
-                        <span className="text-xs text-gray-500">{article.views} views</span>
-                        <span className="text-xs text-green-600">{article.engagement} engagement</span>
+                        <span className="text-xs text-gray-500">
+                          {article.views} views
+                        </span>
+                        <span className="text-xs text-green-600">
+                          {article.engagement} engagement
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1239,13 +1484,15 @@ const NewsAdminDashboard = () => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Recent Content</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Recent Content
+                </h3>
                 <div className="relative">
                   <button
                     onClick={() => {
-                      setArticleType("regular")
-                      setEditArticle(null)
-                      setShowNewArticleForm(true)
+                      setArticleType("regular");
+                      setEditArticle(null);
+                      setShowNewArticleForm(true);
                     }}
                     className="bg-red-800 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center space-x-2 transition-colors"
                   >
@@ -1295,7 +1542,10 @@ const NewsAdminDashboard = () => {
                       <td colSpan="7" className="px-6 py-4 text-center">
                         <div className="text-red-600">
                           {error}
-                          <button onClick={fetchRecentArticles} className="ml-2 text-red-800 underline">
+                          <button
+                            onClick={fetchRecentArticles}
+                            className="ml-2 text-red-800 underline"
+                          >
                             Retry
                           </button>
                         </div>
@@ -1303,7 +1553,10 @@ const NewsAdminDashboard = () => {
                     </tr>
                   ) : recentArticles.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                      <td
+                        colSpan="7"
+                        className="px-6 py-4 text-center text-gray-500"
+                      >
                         No content found
                       </td>
                     </tr>
@@ -1315,8 +1568,14 @@ const NewsAdminDashboard = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div>
-                            <p className="text-sm font-medium text-gray-900 truncate max-w-xs">{article.title}</p>
-                            {article.category && <p className="text-xs text-gray-500">{article.category}</p>}
+                            <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                              {article.title}
+                            </p>
+                            {article.category && (
+                              <p className="text-xs text-gray-500">
+                                {article.category}
+                              </p>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900">
@@ -1334,8 +1593,8 @@ const NewsAdminDashboard = () => {
                               article.status === "Published"
                                 ? "bg-green-100 text-green-800"
                                 : article.status === "Draft"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-blue-100 text-blue-800"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-blue-100 text-blue-800"
                             }`}
                           >
                             {article.status || "Published"}
@@ -1352,15 +1611,21 @@ const NewsAdminDashboard = () => {
                             <button
                               className="text-blue-600 hover:text-blue-800 transition-colors"
                               onClick={() => {
-                                setEditArticle(article)
-                                setArticleType(article.type === "article" ? "regular" : article.type)
-                                setShowNewArticleForm(true)
+                                setEditArticle(article);
+                                setArticleType(
+                                  article.type === "article"
+                                    ? "regular"
+                                    : article.type
+                                );
+                                setShowNewArticleForm(true);
                               }}
                             >
                               <Edit size={16} />
                             </button>
                             <button
-                              onClick={() => handleDeleteArticle(article._id, article.type)}
+                              onClick={() =>
+                                handleDeleteArticle(article._id, article.type)
+                              }
                               className="text-red-600 hover:text-red-800 transition-colors"
                             >
                               <Trash2 size={16} />
@@ -1381,8 +1646,8 @@ const NewsAdminDashboard = () => {
       {showNewArticleForm && (
         <NewArticleForm
           onClose={() => {
-            setShowNewArticleForm(false)
-            setEditArticle(null)
+            setShowNewArticleForm(false);
+            setEditArticle(null);
           }}
           editData={editArticle}
           editType={editArticle ? editArticle.type : null}
@@ -1393,16 +1658,25 @@ const NewsAdminDashboard = () => {
       {deleteDialog.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
-            <h2 className="text-lg font-semibold mb-4 text-gray-900">Delete Article</h2>
-            <p className="mb-6 text-gray-700">Do you want to delete this article?</p>
+            <h2 className="text-lg font-semibold mb-4 text-gray-900">
+              Delete Article
+            </h2>
+            <p className="mb-6 text-gray-700">
+              Do you want to delete this article?
+            </p>
             <div className="flex justify-end space-x-3">
               <button
                 className="px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
-                onClick={() => setDeleteDialog({ open: false, id: null, type: null })}
+                onClick={() =>
+                  setDeleteDialog({ open: false, id: null, type: null })
+                }
               >
                 Cancel
               </button>
-              <button className="px-4 py-2 rounded bg-red-700 text-white hover:bg-red-800" onClick={confirmDelete}>
+              <button
+                className="px-4 py-2 rounded bg-red-700 text-white hover:bg-red-800"
+                onClick={confirmDelete}
+              >
                 Delete
               </button>
             </div>
@@ -1410,7 +1684,7 @@ const NewsAdminDashboard = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default NewsAdminDashboard
+export default NewsAdminDashboard;
