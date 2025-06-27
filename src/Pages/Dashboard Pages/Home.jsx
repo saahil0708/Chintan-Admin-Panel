@@ -240,6 +240,7 @@ const NewsAdminDashboard = () => {
       "বিদেশ",
       "রাজ্য",
       "দেশ",
+      "অন্যান্য"
     ];
 
     // Breaking news image upload
