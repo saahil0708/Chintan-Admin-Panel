@@ -24,6 +24,8 @@ import {
 import { useAppContext } from "../Context/AppContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 const AdminNavbar = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -97,6 +99,7 @@ const AdminNavbar = () => {
     try {
       await logout();
       navigate("/");
+      // toast.success("Logged Out Successfully");
     } catch (error) {
       toast.error("Failed to logout");
       console.error("Logout error:", error);

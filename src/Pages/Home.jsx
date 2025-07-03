@@ -41,7 +41,7 @@ const AdminHomePage = () => {
                 const user = await getUserData();
                 if (user) {
                     login(user);
-                    toast.success("Login successful");
+                    toast.success("Login Successful");
                     navigate("/dashboard");
                 } else {
                     throw new Error("Failed to fetch user data");

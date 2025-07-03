@@ -65,7 +65,7 @@ const AppContextProvider = ({ children }) => {
             setUserData(null);
             localStorage.removeItem('isLoggedIn');
             localStorage.removeItem('user');
-            toast.success("Logged Out Successfully");
+            toast.success("Logout Succesful");
         } catch (error) {
             toast.error(error.response?.data?.message || "Failed to logout");
         } finally {
