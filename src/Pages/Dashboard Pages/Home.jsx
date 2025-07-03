@@ -413,9 +413,6 @@ const NewsAdminDashboard = () => {
               `${backendURL}/api/videos`,
               formData,
               {
-                headers: {
-                  "Content-Type": "multipart/form-data",
-                },
                 withCredentials: true,
               }
             );
@@ -435,6 +432,10 @@ const NewsAdminDashboard = () => {
             setShowNewArticleForm(false);
           } catch (error) {
             console.error("Error uploading video:", error);
+            if (error.response) {
+              console.error("Response data:", error.response.data);
+              console.error("Response headers:", error.response.headers);
+            }
             toast.error(
               error.response?.data?.message || "Error uploading video"
             );
