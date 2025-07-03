@@ -1,5 +1,21 @@
 import { useState, useEffect } from "react";
-import { FileText, Eye, Users, MessageCircle, Plus, Edit, Trash2, Clock, AlertTriangle, ChevronDown, Tag, Save, X, ImageIcon } from 'lucide-react';
+import {
+  FileText,
+  Eye,
+  Users,
+  MessageCircle,
+  Plus,
+  Edit,
+  Trash2,
+  Clock,
+  AlertTriangle,
+  ChevronDown,
+  Tag,
+  Save,
+  X,
+  ImageIcon,
+  Video,
+} from "lucide-react";
 import {
   LineChart,
   Line,
@@ -34,6 +50,8 @@ const NewsAdminDashboard = () => {
     id: null,
     type: null,
   });
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
 
   // Chart data
   const chartData = {
@@ -109,17 +127,15 @@ const NewsAdminDashboard = () => {
       setLoading(true);
       setError(null);
 
-      const [articlesRes, liveNewsRes, breakingNewsRes] = await Promise.all([
-        axios.get(`${backendURL}/api/articles`),
-        axios.get(`${backendURL}/api/live-news`).catch((e) => {
-          console.error("Error fetching live news:", e);
-          return { data: [] };
-        }),
-        axios.get(`${backendURL}/api/breaking-news`).catch((e) => {
-          console.error("Error fetching breaking news:", e);
-          return { data: [] };
-        }),
-      ]);
+      const [articlesRes, liveNewsRes, breakingNewsRes, videosRes] =
+        await Promise.all([
+          axios.get(`${backendURL}/api/articles`),
+          axios.get(`${backendURL}/api/live-news`).catch(() => ({ data: [] })),
+          axios
+            .get(`${backendURL}/api/breaking-news`)
+            .catch(() => ({ data: [] })),
+          axios.get(`${backendURL}/api/videos`).catch(() => ({ data: [] })),
+        ]);
 
       const combined = [
         ...articlesRes.data.map((item) => ({ ...item, type: "article" })),
@@ -128,6 +144,7 @@ const NewsAdminDashboard = () => {
           ...item,
           type: "breaking",
         })),
+        ...(videosRes?.data || []).map((item) => ({ ...item, type: "video" })),
       ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
       setRecentArticles(combined);
@@ -159,6 +176,7 @@ const NewsAdminDashboard = () => {
       if (type === "live") endpoint = `${backendURL}/api/live-news/${id}`;
       if (type === "breaking")
         endpoint = `${backendURL}/api/breaking-news/${id}`;
+      if (type === "video") endpoint = `${backendURL}/api/videos/${id}`;
 
       await axios.delete(endpoint, { withCredentials: true });
       setRecentArticles((prev) => prev.filter((item) => item._id !== id));
@@ -233,15 +251,6 @@ const NewsAdminDashboard = () => {
       editData?.imageUrl || null
     );
     const [isUploading, setIsUploading] = useState(false);
-    const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-    const categories = [
-      "প্রযুক্তি",
-      "খেলা",
-      "বিদেশ",
-      "রাজ্য",
-      "দেশ",
-      "অন্যান্য"
-    ];
 
     // Breaking news image upload
     const uploadBreakingNewsImage = async (breakingNewsId, imageFile) => {
@@ -330,6 +339,30 @@ const NewsAdminDashboard = () => {
       }
     };
 
+    const handleVideoFileChange = async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        // Validate file type
+        if (!file.type.match("video.*")) {
+          toast.error("Please select a video file (MP4, MOV, AVI)");
+          return;
+        }
+
+        // Validate file size (50MB max)
+        if (file.size > 50 * 1024 * 1024) {
+          toast.error("Video size must be less than 50MB");
+          return;
+        }
+
+        setVideoFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setVideoPreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
     const handleTagAdd = (e) => {
       e.preventDefault();
       if (
@@ -351,28 +384,68 @@ const NewsAdminDashboard = () => {
       }));
     };
 
-    const handleCategorySelect = (category) => {
-      if ((editType || articleType) === "breaking") {
-        setBreakingData((prev) => ({ ...prev, category }));
-      } else {
-        setFormData((prev) => ({ ...prev, category }));
-      }
-      setIsCategoryOpen(false);
-    };
-
     const handleSubmit = async (e) => {
       e.preventDefault();
       const type = editType || articleType;
 
+      if (type === "video" && !videoFile) {
+        toast.error("Please select a video file to upload");
+        return;
+      }
+
       console.log("=== FORM SUBMISSION START ===");
       console.log("Article type:", type);
-      console.log("Live headlines:", liveHeadlines);
 
       try {
         setIsPosting(true);
 
+        // Handle video upload
+        if (type === "video") {
+          if (!videoFile) {
+            toast.error("Please select a video file to upload");
+            return;
+          }
+          try {
+            const formData = new FormData();
+            formData.append("video", videoFile);
+
+            const response = await axios.post(
+              `${backendURL}/api/videos`,
+              formData,
+              {
+                headers: {
+                  "Content-Type": "multipart/form-data",
+                },
+                withCredentials: true,
+              }
+            );
+
+            // Update UI with the new video
+            setRecentArticles((prev) => [
+              {
+                ...response.data,
+                type: "video",
+                title: "Video Upload", // Default title
+                createdAt: new Date().toISOString(),
+              },
+              ...prev,
+            ]);
+
+            toast.success("Video uploaded successfully!");
+            setShowNewArticleForm(false);
+          } catch (error) {
+            console.error("Error uploading video:", error);
+            toast.error(
+              error.response?.data?.message || "Error uploading video"
+            );
+          } finally {
+            setIsPosting(false);
+          }
+          return;
+        }
+
+        // Handle breaking news with image upload
         if (type === "breaking") {
-          // Handle breaking news with image upload
           const breakingPayload = {
             title: breakingData.title,
             description: breakingData.description,
@@ -442,13 +515,15 @@ const NewsAdminDashboard = () => {
           return;
         }
 
-        // Handle live news - FIXED: Submit all headlines
+        // Handle live news
         if (type === "live") {
           console.log("Processing live news with headlines:", liveHeadlines);
-          
+
           // Filter out empty headlines
-          const validHeadlines = liveHeadlines.filter(headline => headline.trim() !== "");
-          
+          const validHeadlines = liveHeadlines.filter(
+            (headline) => headline.trim() !== ""
+          );
+
           if (validHeadlines.length === 0) {
             toast.error("Please add at least one headline");
             return;
@@ -470,11 +545,9 @@ const NewsAdminDashboard = () => {
               );
             } else {
               // Create new live news item
-              return await axios.post(
-                `${backendURL}/api/live-news`,
-                payload,
-                { withCredentials: true }
-              );
+              return await axios.post(`${backendURL}/api/live-news`, payload, {
+                withCredentials: true,
+              });
             }
           });
 
@@ -482,9 +555,9 @@ const NewsAdminDashboard = () => {
           console.log("All live news responses:", responses);
 
           // Update UI with all new live news items
-          const newLiveNews = responses.map(response => ({
+          const newLiveNews = responses.map((response) => ({
             ...response.data,
-            type: "live"
+            type: "live",
           }));
 
           if (editArticle && validHeadlines.length === 1) {
@@ -498,7 +571,9 @@ const NewsAdminDashboard = () => {
           } else {
             // Add new items
             setRecentArticles((prev) => [...newLiveNews, ...prev]);
-            toast.success(`${validHeadlines.length} live news headlines published!`);
+            toast.success(
+              `${validHeadlines.length} live news headlines published!`
+            );
           }
 
           setShowNewArticleForm(false);
@@ -657,7 +732,9 @@ const NewsAdminDashboard = () => {
                     ? "Article"
                     : (editType || articleType) === "live"
                     ? "Live News"
-                    : "Breaking News")}
+                    : (editType || articleType) === "breaking"
+                    ? "Breaking News"
+                    : "Video")}
               </h2>
               <div className="flex flex-wrap gap-2 mt-2">
                 <button
@@ -696,6 +773,18 @@ const NewsAdminDashboard = () => {
                 >
                   <AlertTriangle size={16} className="inline mr-1" />
                   Breaking
+                </button>
+                <button
+                  onClick={() => setArticleType("video")}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    (editType || articleType) === "video"
+                      ? "bg-red-100 text-red-800"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                  disabled={!!editData}
+                >
+                  <Video size={16} className="inline mr-1" />
+                  Video
                 </button>
               </div>
             </div>
@@ -745,7 +834,8 @@ const NewsAdminDashboard = () => {
                   + Add Headline
                 </button>
                 <p className="mt-2 text-sm text-gray-500">
-                  Each headline will be published as a separate live news item. Empty headlines will be ignored.
+                  Each headline will be published as a separate live news item.
+                  Empty headlines will be ignored.
                 </p>
               </div>
             )}
@@ -864,45 +954,62 @@ const NewsAdminDashboard = () => {
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category *
-                  </label>
+              </>
+            )}
+
+            {/* Video Upload Form */}
+            {(editType || articleType) === "video" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Video Upload *
+                </label>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                   <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                      className="w-full flex justify-between items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-red-500"
-                    >
-                      {breakingData.category || "Select a category"}
-                      <ChevronDown size={16} className="text-gray-500" />
-                    </button>
-                    {isCategoryOpen && (
-                      <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 border border-gray-200 max-h-60 overflow-auto">
-                        {categories.map((category) => (
-                          <div
-                            key={category}
-                            onClick={() => {
-                              setBreakingData((prev) => ({
-                                ...prev,
-                                category,
-                              }));
-                              setIsCategoryOpen(false);
-                            }}
-                            className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
-                              breakingData.category === category
-                                ? "bg-red-50 text-red-800"
-                                : ""
-                            }`}
-                          >
-                            {category}
-                          </div>
-                        ))}
+                    {videoPreview ? (
+                      <div className="group relative">
+                        <video
+                          src={videoPreview}
+                          className="h-24 w-24 rounded-md object-cover border border-gray-300"
+                          controls
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setVideoPreview(null);
+                            setVideoFile(null);
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="h-24 w-24 rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center">
+                        <Video size={24} className="text-gray-400" />
                       </div>
                     )}
                   </div>
+                  <div className="flex-1 w-full">
+                    <input
+                      type="file"
+                      id="videoFile"
+                      name="videoFile"
+                      onChange={handleVideoFileChange}
+                      accept="video/*"
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="videoFile"
+                      className="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer text-center"
+                    >
+                      {videoPreview ? "Change Video" : "Upload Video"}
+                    </label>
+                    <p className="mt-1 text-xs text-gray-500">
+                      MP4, MOV or AVI (Max: 50MB)
+                    </p>
+                  </div>
                 </div>
-              </>
+              </div>
             )}
 
             {/* Regular Article Form */}
@@ -960,38 +1067,6 @@ const NewsAdminDashboard = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     required
                   />
-                </div>
-                <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category *
-                  </label>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                      className="w-full flex justify-between items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-red-500"
-                    >
-                      {formData.category || "Select a category"}
-                      <ChevronDown size={16} className="text-gray-500" />
-                    </button>
-                    {isCategoryOpen && (
-                      <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 border border-gray-200 max-h-60 overflow-auto">
-                        {categories.map((category) => (
-                          <div
-                            key={category}
-                            onClick={() => handleCategorySelect(category)}
-                            className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
-                              formData.category === category
-                                ? "bg-red-50 text-red-800"
-                                : ""
-                            }`}
-                          >
-                            {category}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1188,7 +1263,7 @@ const NewsAdminDashboard = () => {
                         d="M4 12a8 8 0 018-8v8H4z"
                       ></path>
                     </svg>
-                    {isUploading ? "Uploading Image..." : "Publishing..."}
+                    {isUploading ? "Uploading..." : "Publishing..."}
                   </>
                 ) : (
                   <>
@@ -1200,7 +1275,9 @@ const NewsAdminDashboard = () => {
                         ? "Article"
                         : (editType || articleType) === "live"
                         ? "Live Headlines"
-                        : "Breaking News")}
+                        : (editType || articleType) === "breaking"
+                        ? "Breaking News"
+                        : "Video")}
                   </>
                 )}
               </button>
@@ -1271,6 +1348,11 @@ const NewsAdminDashboard = () => {
             icon: <AlertTriangle size={14} className="mr-1" />,
             color: "bg-red-100 text-red-800",
           };
+        case "video":
+          return {
+            icon: <Video size={14} className="mr-1" />,
+            color: "bg-purple-100 text-purple-800",
+          };
         default:
           return {
             icon: <FileText size={14} className="mr-1" />,
@@ -1290,6 +1372,8 @@ const NewsAdminDashboard = () => {
           ? "Live"
           : type === "breaking"
           ? "Breaking"
+          : type === "video"
+          ? "Video"
           : "Article"}
       </span>
     );
@@ -1580,13 +1664,7 @@ const NewsAdminDashboard = () => {
                           </div>
                         </td>
                         <td className="px-4 py-3 md:px-6 md:py-4 text-sm text-gray-900">
-                          {article.type === "breaking" ? (
-                            <>
-                              <div>{article.reporter || "-"}</div>
-                            </>
-                          ) : (
-                            article.author || "-"
-                          )}
+                          {article.author || "-"}
                         </td>
                         <td className="px-4 py-3 md:px-6 md:py-4">
                           <span
@@ -1660,10 +1738,10 @@ const NewsAdminDashboard = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 max-w-sm w-full mx-4">
             <h2 className="text-lg font-semibold mb-3 md:mb-4 text-gray-900">
-              Delete Article
+              Delete Content
             </h2>
             <p className="mb-4 md:mb-6 text-gray-700">
-              Do you want to delete this article?
+              Are you sure you want to delete this content?
             </p>
             <div className="flex flex-col sm:flex-row justify-end gap-3">
               <button
