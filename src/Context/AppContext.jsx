@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 const AppContext = createContext();
 
 const AppContextProvider = ({ children }) => {
-    const backendURL = "https://chintan-server.vercel.app" || "http://localhost:5000";
+    const backendURL = "https://chintan-server.onrender.com";
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userData, setUserData] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
