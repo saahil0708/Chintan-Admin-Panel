@@ -160,7 +160,9 @@ const NewsAdminDashboard = () => {
       // Fetch all content types with proper error handling
       const fetchWithFallback = async (url, type) => {
         try {
-          const response = await axios.get(url);
+          const response = await axios.get(url, {
+            withCredentials: true,
+          });
           const data = response.data;
           console.log(`${type} response:`, data);
 
@@ -341,6 +343,19 @@ const NewsAdminDashboard = () => {
           }
     );
 
+    // Video form data
+    const [videoData, setVideoData] = useState(
+      editData && editType === "video"
+        ? {
+            title: editData.title || "",
+            duration: editData.duration || "",
+          }
+        : {
+            title: "",
+            duration: "",
+          }
+    );
+
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(
       editData?.imageUrl || null
@@ -383,6 +398,14 @@ const NewsAdminDashboard = () => {
       setFormData((prev) => ({
         ...prev,
         [name]: type === "checkbox" ? checked : value,
+      }));
+    };
+
+    const handleVideoDataChange = (e) => {
+      const { name, value } = e.target;
+      setVideoData((prev) => ({
+        ...prev,
+        [name]: value,
       }));
     };
 
@@ -502,25 +525,39 @@ const NewsAdminDashboard = () => {
             return;
           }
 
+          if (!videoData.title.trim()) {
+            toast.error("Please enter a video title");
+            return;
+          }
+
+          if (!videoData.duration.trim()) {
+            toast.error("Please enter video duration");
+            return;
+          }
+
           try {
             const formData = new FormData();
             formData.append("video", localVideoFile);
+            formData.append("title", videoData.title);
+            formData.append("duration", videoData.duration);
 
             const response = await axios.post(
               `${backendURL}/api/videos`,
               formData,
               {
                 withCredentials: true,
+                headers: {
+                  'Content-Type': 'multipart/form-data',
+                },
               }
             );
 
-            const data = response.data;
+            const data = response.data.data || response.data;
             // Update UI with the new video
             setRecentArticles((prev) => [
               {
                 ...data,
                 type: "video",
-                title: "Video Upload", // Default title
                 createdAt: new Date().toISOString(),
               },
               ...prev,
@@ -531,7 +568,11 @@ const NewsAdminDashboard = () => {
             resetForm(); // Clear form after successful upload
           } catch (error) {
             console.error("Error Uploading Video:", error);
-            toast.error("Error Uploading Video");
+            if (error.response?.status === 400) {
+              toast.error(error.response.data.message || "Invalid video data");
+            } else {
+              toast.error("Error Uploading Video");
+            }
           } finally {
             setIsPosting(false);
           }
@@ -1025,6 +1066,27 @@ const NewsAdminDashboard = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category *
+                  </label>
+                  <select
+                    type="text"
+                    name="category"
+                    value={breakingData.category}
+                    onChange={handleBreakingChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select a category</option>
+                    <option value="রাজ্য">রাজ্য</option>
+                    <option value="দেশ">দেশ</option>
+                    <option value="বিদেশ">বিদেশ</option>
+                    <option value="খেলা">খেলা</option>
+                    <option value="প্রযুক্তি">প্রযুক্তি</option>
+                    <option value="অন্যান্য">অন্যান্য</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Reporter *
                   </label>
                   <input
@@ -1049,79 +1111,96 @@ const NewsAdminDashboard = () => {
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category *
-                  </label>
-                  <input
-                    type="text"
-                    name="category"
-                    value={breakingData.category}
-                    onChange={handleBreakingChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    required
-                  />
-                </div>
               </>
             )}
 
             {/* Video Upload Form */}
             {(editType || articleType) === "video" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Video Upload *
-                </label>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <div className="relative">
-                    {localVideoPreview ? (
-                      <div className="group relative">
-                        <video
-                          src={localVideoPreview}
-                          className="h-24 w-24 rounded-md object-cover border border-gray-300"
-                          controls
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setLocalVideoPreview(null);
-                            setLocalVideoFile(null);
-                            // Clear the file input
-                            const fileInput =
-                              document.getElementById("videoFile");
-                            if (fileInput) fileInput.value = "";
-                          }}
-                          className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="h-24 w-24 rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center">
-                        <Video size={24} className="text-gray-400" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 w-full">
-                    <input
-                      type="file"
-                      id="videoFile"
-                      name="videoFile"
-                      onChange={handleVideoFileChange}
-                      accept="video/*"
-                      className="hidden"
-                    />
-                    <label
-                      htmlFor="videoFile"
-                      className="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer text-center"
-                    >
-                      {localVideoPreview ? "Change Video" : "Upload Video"}
-                    </label>
-                    <p className="mt-1 text-xs text-gray-500">
-                      MP4, MOV or AVI (Max: 50MB)
-                    </p>
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Video Title *
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={videoData.title}
+                    onChange={handleVideoDataChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    required
+                    placeholder="Enter video title"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Duration *
+                  </label>
+                  <input
+                    type="text"
+                    name="duration"
+                    value={videoData.duration}
+                    onChange={handleVideoDataChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    required
+                    placeholder="e.g., 5:30 or 5 minutes"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Video Upload *
+                  </label>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="relative">
+                      {localVideoPreview ? (
+                        <div className="group relative">
+                          <video
+                            src={localVideoPreview}
+                            className="h-24 w-24 rounded-md object-cover border border-gray-300"
+                            controls
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLocalVideoPreview(null);
+                              setLocalVideoFile(null);
+                              // Clear the file input
+                              const fileInput =
+                                document.getElementById("videoFile");
+                              if (fileInput) fileInput.value = "";
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="h-24 w-24 rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center">
+                          <Video size={24} className="text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 w-full">
+                      <input
+                        type="file"
+                        id="videoFile"
+                        name="videoFile"
+                        onChange={handleVideoFileChange}
+                        accept="video/*"
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="videoFile"
+                        className="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer text-center"
+                      >
+                        {localVideoPreview ? "Change Video" : "Upload Video"}
+                      </label>
+                      <p className="mt-1 text-xs text-gray-500">
+                        MP4, MOV or AVI (Max: 50MB)
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </>
             )}
 
             {/* Regular Article Form */}
@@ -1498,72 +1577,6 @@ const NewsAdminDashboard = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 overflow-hidden">
-      {/* Header */}
-      {/* <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="px-4 md:px-6 py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">News Admin Dashboard</h1>
-              <p className="text-sm text-gray-600 mt-1">Manage your content and track performance</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-500">Last updated: {lastUpdated.toLocaleTimeString()}</div>
-              <button
-                onClick={fetchRecentArticles}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-                disabled={loading}
-              >
-                <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-                Refresh
-              </button>
-              
-              User Menu
-              <div className="relative">
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                >
-                  <User size={16} className="text-gray-600" />
-                  <span className="text-sm text-gray-700 hidden sm:block">
-                    {userData?.name || userData?.email || "User"}
-                  </span>
-                  <ChevronDown size={16} className="text-gray-600" />
-                </button>
-                
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-                    <div className="py-1">
-                      <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
-                        <div className="font-medium">{userData?.name || "User"}</div>
-                        <div className="text-gray-500">{userData?.email}</div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setShowUserMenu(false)
-                          // Add settings functionality here
-                        }}
-                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        <Settings size={16} />
-                        Settings
-                      </button>
-                      <button
-                        onClick={handleLogout}
-                        disabled={contextLoading}
-                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
-                      >
-                        <LogOut size={16} />
-                        {contextLoading ? "Logging out..." : "Logout"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </header> */}
-
       {/* Main content */}
       <div className="flex-1 flex flex-col">
         {/* Main content area */}
