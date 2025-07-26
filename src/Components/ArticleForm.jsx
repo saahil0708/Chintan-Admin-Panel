@@ -286,7 +286,6 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Content *
           </label>
-          // In ArticleForm.js, update the RichTextEditor usage:
           <RichTextEditor
             content={formData.content}
             onChange={handleContentChange}
