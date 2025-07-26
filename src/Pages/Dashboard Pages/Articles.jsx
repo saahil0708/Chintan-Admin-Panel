@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Calendar, User, Tag, Clock, ArrowRight } from 'lucide-react';
+import { Search, Calendar, User, Tag, Clock, ArrowRight, Plus, Edit, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { useAppContext } from '../../Context/AppContext';
+import ArticleForm from '../../Components/ArticleForm';
 
 const ArticlesUI = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -9,35 +10,43 @@ const ArticlesUI = () => {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editingArticle, setEditingArticle] = useState(null);
 
   const { backendURL } = useAppContext();
+
   // Fetch articles from API
   useEffect(() => {
-    const fetchArticles = async () => {
-      try {
-        const response = await axios.get(`${backendURL}/api/articles`, {
-          withCredentials: true,
-        });
-        setArticles(response.data);
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-      }
-    };
-
     fetchArticles();
   }, []);
 
+  const fetchArticles = async () => {
+    try {
+      const response = await axios.get(`${backendURL}/api/articles`, {
+        withCredentials: true,
+      });
+      setArticles(response.data);
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
   // Get unique categories from articles
-  const categories = ['All', ...new Set(articles.map(article => article.category))];
+  let categories = Array.from(new Set(articles.flatMap(article => Array.isArray(article.category) ? article.category : [article.category]))).filter(Boolean);
+  categories = categories.filter(cat => cat !== 'general' && cat !== 'খেলা প্রযুক্তি');
+  // Add 'khela', 'projukti', 'খেলা', and 'প্রযুক্তি' if not already present
+  if (!categories.includes('খেলা')) categories.push('খেলা');
+  if (!categories.includes('প্রযুক্তি')) categories.push('প্রযুক্তি');
 
   // Filter articles based on search term and category
   const filteredArticles = articles.filter(article => {
+    const articleCategory = Array.isArray(article.category) ? article.category[0] : article.category;
     const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         article.excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         article.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          article.author.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || article.category === selectedCategory;
+    const matchesCategory = selectedCategory === 'All' || articleCategory === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -49,6 +58,41 @@ const ArticlesUI = () => {
       month: 'long', 
       day: 'numeric' 
     });
+  };
+
+  const handleCreateArticle = () => {
+    setEditingArticle(null);
+    setShowForm(true);
+  };
+
+  const handleEditArticle = (article) => {
+    setEditingArticle(article);
+    setShowForm(true);
+  };
+
+  const handleDeleteArticle = async (articleId) => {
+    if (window.confirm('Are you sure you want to delete this article?')) {
+      try {
+        await axios.delete(`${backendURL}/api/articles/${articleId}`, {
+          withCredentials: true,
+        });
+        fetchArticles(); // Refresh the list
+      } catch (error) {
+        console.error('Error deleting article:', error);
+        alert('Error deleting article');
+      }
+    }
+  };
+
+  const handleSaveArticle = (savedArticle) => {
+    setShowForm(false);
+    setEditingArticle(null);
+    fetchArticles(); // Refresh the list
+  };
+
+  const handleCancelForm = () => {
+    setShowForm(false);
+    setEditingArticle(null);
   };
 
   // Loading state
@@ -86,6 +130,20 @@ const ArticlesUI = () => {
     );
   }
 
+  // Show form if needed
+  if (showForm) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <ArticleForm
+          article={editingArticle}
+          onSave={handleSaveArticle}
+          onCancel={handleCancelForm}
+          categories={categories}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -96,8 +154,17 @@ const ArticlesUI = () => {
               <h1 className="text-3xl font-bold text-gray-900">Published Articles</h1>
               <p className="mt-2 text-gray-600">Discover insights, tutorials, and industry expertise</p>
             </div>
-            <div className="bg-red-800 text-white px-4 py-2 rounded-lg font-medium">
-              {filteredArticles.length} Articles
+            <div className="flex items-center space-x-4">
+              <div className="bg-red-800 text-white px-4 py-2 rounded-lg font-medium">
+                {filteredArticles.length} Articles
+              </div>
+              <button
+                onClick={handleCreateArticle}
+                className="bg-red-800 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Article
+              </button>
             </div>
           </div>
         </div>
@@ -140,20 +207,37 @@ const ArticlesUI = () => {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {filteredArticles.map(article => (
             <article
-              key={article._id}  // Using _id from MongoDB
-              className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer border border-gray-200"
+              key={article._id}
+              className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group border border-gray-200"
             >
               {/* Article Image */}
               <div className="relative overflow-hidden">
                 <img
-                  src={article.image || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=400&h=250&fit=crop'}
+                  src={article.imageUrl || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=400&h=250&fit=crop'}
                   alt={article.title}
                   className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <div className="absolute top-4 left-4">
                   <span className="bg-red-800 text-white px-3 py-1 rounded-full text-sm font-medium">
-                    {article.category}
+                    {Array.isArray(article.category) ? article.category[0] : article.category}
                   </span>
+                </div>
+                {/* Action buttons */}
+                <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => handleEditArticle(article)}
+                    className="bg-white text-gray-700 p-2 rounded-full shadow-md hover:bg-gray-50"
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteArticle(article._id)}
+                    className="bg-red-500 text-white p-2 rounded-full shadow-md hover:bg-red-600"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
@@ -164,7 +248,7 @@ const ArticlesUI = () => {
                 </h2>
                 
                 <p className="text-gray-600 mb-4 line-clamp-3">
-                  {article.excerpt}
+                  {article.content}
                 </p>
 
                 {/* Tags */}
@@ -189,13 +273,28 @@ const ArticlesUI = () => {
                     </div>
                     <div className="flex items-center">
                       <Calendar className="w-4 h-4 mr-1" />
-                      {formatDate(article.date)}
+                      {formatDate(article.createdAt)}
                     </div>
                   </div>
-                  <div className="flex items-center">
-                    <Clock className="w-4 h-4 mr-1" />
-                    {article.readTime || '5 min read'}
-                  </div>
+                </div>
+
+                {/* Article Flags */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {article.trending && (
+                    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-medium">
+                      Trending
+                    </span>
+                  )}
+                  {article.editorsChoice && (
+                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                      Editor's Choice
+                    </span>
+                  )}
+                  {article.latestNews && (
+                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                      Latest News
+                    </span>
+                  )}
                 </div>
 
                 {/* Read More Button */}
