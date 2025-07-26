@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, X, Upload, Edit, Trash2 } from 'lucide-react';
-import RichTextEditor from './RichTextEditor';
-import axios from 'axios';
-import { useAppContext } from '../Context/AppContext';
-import { toast } from 'react-toastify';
+import React, { useState, useEffect } from "react";
+import { Plus, X, Upload, Edit, Trash2 } from "lucide-react";
+import RichTextEditor from "./RichTextEditor";
+import axios from "axios";
+import { useAppContext } from "../Context/AppContext";
+import { toast } from "react-toastify";
 
 const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
   const { backendURL } = useAppContext();
-  
+
   const [formData, setFormData] = useState({
-    title: '',
-    content: '', // This will now store the rich content HTML
-    author: '',
-    category: '',
-    tags: '',
+    title: "",
+    content: "", // This will now store the rich content HTML
+    author: "",
+    category: "",
+    tags: "",
     trending: false,
     editorsChoice: false,
-    latestNews: false
+    latestNews: false,
   });
 
   const [mainImage, setMainImage] = useState(null);
-  const [mainImagePreview, setMainImagePreview] = useState('');
+  const [mainImagePreview, setMainImagePreview] = useState("");
   const [additionalImages, setAdditionalImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -30,42 +30,46 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
   useEffect(() => {
     if (article) {
       setFormData({
-        title: article.title || '',
-        content: article.content || article.richContent || '', // Combine both fields
-        author: article.author || '',
-        category: Array.isArray(article.category) ? article.category[0] : article.category || '',
-        tags: Array.isArray(article.tags) ? article.tags.join(', ') : article.tags || '',
+        title: article.title || "",
+        content: article.content || article.richContent || "", // Combine both fields
+        author: article.author || "",
+        category: Array.isArray(article.category)
+          ? article.category[0]
+          : article.category || "",
+        tags: Array.isArray(article.tags)
+          ? article.tags.join(", ")
+          : article.tags || "",
         trending: article.trending || false,
         editorsChoice: article.editorsChoice || false,
-        latestNews: article.latestNews || false
+        latestNews: article.latestNews || false,
       });
-      setMainImagePreview(article.imageUrl || '');
+      setMainImagePreview(article.imageUrl || "");
       setAdditionalImages(article.additionalImages || []);
     }
   }, [article]);
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.title.trim()) newErrors.title = 'Title is required';
-    if (!formData.content.trim()) newErrors.content = 'Content is required';
-    if (!formData.author.trim()) newErrors.author = 'Author is required';
-    if (!formData.category) newErrors.category = 'Category is required';
+    if (!formData.title.trim()) newErrors.title = "Title is required";
+    if (!formData.content.trim()) newErrors.content = "Content is required";
+    if (!formData.author.trim()) newErrors.author = "Author is required";
+    if (!formData.category) newErrors.category = "Category is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
   const handleContentChange = (html) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      content: html
+      content: html,
     }));
   };
 
@@ -86,40 +90,47 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
     try {
       for (const file of files) {
         const formData = new FormData();
-        formData.append('image', file);
+        formData.append("image", file);
 
-        const response = await axios.post(`${backendURL}/api/upload`, formData, {
-          withCredentials: true,
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        const response = await axios.post(
+          `${backendURL}/api/upload`,
+          formData,
+          {
+            withCredentials: true,
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
 
-        setAdditionalImages(prev => [...prev, {
-          url: response.data.url,
-          caption: '',
-          altText: ''
-        }]);
+        setAdditionalImages((prev) => [
+          ...prev,
+          {
+            url: response.data.url,
+            caption: "",
+            altText: "",
+          },
+        ]);
       }
     } catch (error) {
-      console.error('Error uploading image:', error);
-      toast.error('Error uploading image');
+      console.error("Error uploading image:", error);
+      toast.error("Error uploading image");
     } finally {
       setUploading(false);
     }
   };
 
   const removeAdditionalImage = (index) => {
-    setAdditionalImages(prev => prev.filter((_, i) => i !== index));
+    setAdditionalImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const updateImageCaption = (index, field, value) => {
-    setAdditionalImages(prev => prev.map((img, i) => 
-      i === index ? { ...img, [field]: value } : img
-    ));
+    setAdditionalImages((prev) =>
+      prev.map((img, i) => (i === index ? { ...img, [field]: value } : img))
+    );
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -130,38 +141,49 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
       const submitData = {
         ...formData,
         category: [formData.category],
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-        additionalImages
+        tags: formData.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+        additionalImages,
       };
 
       let response;
       if (article) {
         // Update existing article
-        response = await axios.put(`${backendURL}/api/articles/${article._id}`, submitData, {
-          withCredentials: true
-        });
+        response = await axios.put(
+          `${backendURL}/api/articles/${article._id}`,
+          submitData,
+          {
+            withCredentials: true,
+          }
+        );
       } else {
         // Create new article
         response = await axios.post(`${backendURL}/api/articles`, submitData, {
-          withCredentials: true
+          withCredentials: true,
         });
       }
 
       // Upload main image if selected
       if (mainImage) {
         const imageFormData = new FormData();
-        imageFormData.append('image', mainImage);
-        
-        await axios.post(`${backendURL}/api/articles/${response.data._id}/image`, imageFormData, {
-          withCredentials: true,
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        imageFormData.append("image", mainImage);
+
+        await axios.post(
+          `${backendURL}/api/articles/${response.data._id}/image`,
+          imageFormData,
+          {
+            withCredentials: true,
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
       }
 
       onSave(response.data);
     } catch (error) {
-      console.error('Error saving article:', error);
-      toast.error('Error saving article');
+      console.error("Error saving article:", error);
+      toast.error("Error saving article");
     } finally {
       setLoading(false);
     }
@@ -171,7 +193,7 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-900">
-          {article ? 'Edit Article' : 'Create New Article'}
+          {article ? "Edit Article" : "Create New Article"}
         </h2>
         <button
           onClick={onCancel}
@@ -194,9 +216,13 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
               value={formData.title}
               onChange={handleInputChange}
               required
-              className={`w-full px-3 py-2 border ${errors.title ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-red-800 focus:border-transparent`}
+              className={`w-full px-3 py-2 border ${
+                errors.title ? "border-red-500" : "border-gray-300"
+              } rounded-lg focus:ring-2 focus:ring-red-800 focus:border-transparent`}
             />
-            {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
+            {errors.title && (
+              <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -208,9 +234,13 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
               value={formData.author}
               onChange={handleInputChange}
               required
-              className={`w-full px-3 py-2 border ${errors.author ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-red-800 focus:border-transparent`}
+              className={`w-full px-3 py-2 border ${
+                errors.author ? "border-red-500" : "border-gray-300"
+              } rounded-lg focus:ring-2 focus:ring-red-800 focus:border-transparent`}
             />
-            {errors.author && <p className="mt-1 text-sm text-red-600">{errors.author}</p>}
+            {errors.author && (
+              <p className="mt-1 text-sm text-red-600">{errors.author}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -221,14 +251,20 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
               value={formData.category}
               onChange={handleInputChange}
               required
-              className={`w-full px-3 py-2 border ${errors.category ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-red-800 focus:border-transparent`}
+              className={`w-full px-3 py-2 border ${
+                errors.category ? "border-red-500" : "border-gray-300"
+              } rounded-lg focus:ring-2 focus:ring-red-800 focus:border-transparent`}
             >
               <option value="">Select a category</option>
               {categories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
               ))}
             </select>
-            {errors.category && <p className="mt-1 text-sm text-red-600">{errors.category}</p>}
+            {errors.category && (
+              <p className="mt-1 text-sm text-red-600">{errors.category}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -250,13 +286,19 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Content *
           </label>
+          // In ArticleForm.js, update the RichTextEditor usage:
           <RichTextEditor
             content={formData.content}
             onChange={handleContentChange}
             placeholder="Write your article content..."
-            className={`border ${errors.content ? 'border-red-500' : 'border-gray-300'} rounded-lg`}
+            className={`border ${
+              errors.content ? "border-red-500" : "border-gray-300"
+            } rounded-lg`}
+            backendURL={backendURL}
           />
-          {errors.content && <p className="mt-1 text-sm text-red-600">{errors.content}</p>}
+          {errors.content && (
+            <p className="mt-1 text-sm text-red-600">{errors.content}</p>
+          )}
         </div>
 
         {/* Main Image */}
@@ -290,7 +332,7 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
                   type="button"
                   onClick={() => {
                     setMainImage(null);
-                    setMainImagePreview('');
+                    setMainImagePreview("");
                   }}
                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
                 >
@@ -320,22 +362,25 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
               <label
                 htmlFor="additional-images"
                 className={`flex items-center px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 ${
-                  uploading ? 'opacity-50 cursor-not-allowed' : ''
+                  uploading ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                {uploading ? 'Uploading...' : 'Add Images'}
+                {uploading ? "Uploading..." : "Add Images"}
               </label>
             </div>
 
             {additionalImages.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {additionalImages.map((image, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
+                  <div
+                    key={index}
+                    className="border border-gray-200 rounded-lg p-4"
+                  >
                     <div className="relative mb-3">
                       <img
                         src={image.url}
-                        alt={image.altText || 'Additional image'}
+                        alt={image.altText || "Additional image"}
                         className="w-full h-32 object-cover rounded-lg"
                       />
                       <button
@@ -351,14 +396,18 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
                         type="text"
                         placeholder="Caption"
                         value={image.caption}
-                        onChange={(e) => updateImageCaption(index, 'caption', e.target.value)}
+                        onChange={(e) =>
+                          updateImageCaption(index, "caption", e.target.value)
+                        }
                         className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-red-800"
                       />
                       <input
                         type="text"
                         placeholder="Alt text"
                         value={image.altText}
-                        onChange={(e) => updateImageCaption(index, 'altText', e.target.value)}
+                        onChange={(e) =>
+                          updateImageCaption(index, "altText", e.target.value)
+                        }
                         className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-red-800"
                       />
                     </div>
@@ -422,7 +471,11 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
             disabled={loading}
             className="px-6 py-2 bg-red-800 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
           >
-            {loading ? 'Saving...' : (article ? 'Update Article' : 'Create Article')}
+            {loading
+              ? "Saving..."
+              : article
+              ? "Update Article"
+              : "Create Article"}
           </button>
         </div>
       </form>

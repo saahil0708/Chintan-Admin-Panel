@@ -13,15 +13,18 @@ import {
   Image as ImageIcon,
   Undo,
   Redo,
+  Upload,
 } from "lucide-react";
+import axios from "axios";
 
 const RichTextEditor = ({
   content,
   onChange,
   placeholder = "Start writing your article...",
+  backendURL,
 }) => {
-  const [imageUrl, setImageUrl] = useState("");
   const [showImageInput, setShowImageInput] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -38,11 +41,31 @@ const RichTextEditor = ({
     },
   });
 
-  const addImage = () => {
-    if (imageUrl) {
-      editor.chain().focus().setImage({ src: imageUrl }).run();
-      setImageUrl("");
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await axios.post(`${backendURL}/api/upload`, formData, {
+        withCredentials: true,
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (response.data.url) {
+        editor.chain().focus().setImage({ src: response.data.url }).run();
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image');
+    } finally {
+      setUploading(false);
       setShowImageInput(false);
+      e.target.value = ''; // Reset file input
     }
   };
 
@@ -165,27 +188,22 @@ const RichTextEditor = ({
 
         {showImageInput && (
           <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-            <div className="flex gap-2">
-              <input
-                type="url"
-                placeholder="Enter image URL..."
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-800 focus:border-transparent"
-              />
+            <div className="flex flex-col gap-3">
+              <label className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100">
+                <Upload className="w-4 h-4" />
+                <span>{uploading ? 'Uploading...' : 'Select Image from Device'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  disabled={uploading}
+                />
+              </label>
               <button
-                onClick={addImage}
-                disabled={!imageUrl}
-                className="px-4 py-2 bg-red-800 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Add
-              </button>
-              <button
-                onClick={() => {
-                  setShowImageInput(false);
-                  setImageUrl("");
-                }}
+                onClick={() => setShowImageInput(false)}
                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                disabled={uploading}
               >
                 Cancel
               </button>
