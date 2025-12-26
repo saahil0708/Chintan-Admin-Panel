@@ -294,29 +294,29 @@ const NewsAdminDashboard = () => {
     const [formData, setFormData] = useState(
       editData && editType === "article"
         ? {
-            title: editData.title || "",
-            content: editData.content || "",
-            author: editData.author || "",
-            category: editData.category || "",
-            trending: editData.trending || false,
-            editorsChoice: editData.editorsChoice || false,
-            latestNews: editData.latestNews || false,
-            tags: editData.tags || [],
-            imageTitle: editData.imageTitle || "",
-            newTag: "",
-          }
+          title: editData.title || "",
+          content: editData.content || "",
+          author: editData.author || "",
+          category: editData.category || "",
+          trending: editData.trending || false,
+          editorsChoice: editData.editorsChoice || false,
+          latestNews: editData.latestNews || false,
+          tags: editData.tags || [],
+          imageTitle: editData.imageTitle || "",
+          newTag: "",
+        }
         : {
-            title: "",
-            content: "",
-            author: "",
-            category: "",
-            trending: false,
-            editorsChoice: false,
-            latestNews: false,
-            tags: [],
-            imageTitle: "",
-            newTag: "",
-          }
+          title: "",
+          content: "",
+          author: "",
+          category: "",
+          trending: false,
+          editorsChoice: false,
+          latestNews: false,
+          tags: [],
+          imageTitle: "",
+          newTag: "",
+        }
     );
 
     const [liveHeadlines, setLiveHeadlines] = useState(
@@ -326,34 +326,34 @@ const NewsAdminDashboard = () => {
     const [breakingData, setBreakingData] = useState(
       editData && editType === "breaking"
         ? {
-            title: editData.title || "",
-            description: editData.description || "",
-            imageUrl: editData.imageUrl || "",
-            reporter: editData.reporter || "",
-            designation: editData.designation || "",
-            category: editData.category || "",
-          }
+          title: editData.title || "",
+          description: editData.description || "",
+          imageUrl: editData.imageUrl || "",
+          reporter: editData.reporter || "",
+          designation: editData.designation || "",
+          category: editData.category || "",
+        }
         : {
-            title: "",
-            description: "",
-            imageUrl: "",
-            reporter: "",
-            designation: "",
-            category: "",
-          }
+          title: "",
+          description: "",
+          imageUrl: "",
+          reporter: "",
+          designation: "",
+          category: "",
+        }
     );
 
     // Video form data
     const [videoData, setVideoData] = useState(
       editData && editType === "video"
         ? {
-            title: editData.title || "",
-            duration: editData.duration || "",
-          }
+          title: editData.title || "",
+          duration: editData.duration || "",
+        }
         : {
-            title: "",
-            duration: "",
-          }
+          title: "",
+          duration: "",
+        }
     );
 
     const [imageFile, setImageFile] = useState(null);
@@ -365,6 +365,8 @@ const NewsAdminDashboard = () => {
     // Local video states for proper isolation
     const [localVideoFile, setLocalVideoFile] = useState(null);
     const [localVideoPreview, setLocalVideoPreview] = useState(null);
+    const [videoThumbnailFile, setVideoThumbnailFile] = useState(null);
+    const [videoThumbnailPreview, setVideoThumbnailPreview] = useState(null);
 
     // Breaking news image upload
     const uploadBreakingNewsImage = async (breakingNewsId, imageFile) => {
@@ -458,6 +460,30 @@ const NewsAdminDashboard = () => {
       }
     };
 
+    const handleVideoThumbnailChange = async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        // Validate file type
+        if (!file.type.match("image.*")) {
+          toast.error("Please Select an image file (JPEG, PNG, GIF)");
+          return;
+        }
+
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error("Image size must be less than 5MB");
+          return;
+        }
+
+        setVideoThumbnailFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setVideoThumbnailPreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
     const handleVideoFileChange = async (e) => {
       const file = e.target.files[0];
       if (file) {
@@ -525,6 +551,11 @@ const NewsAdminDashboard = () => {
             return;
           }
 
+          if (!videoThumbnailFile) {
+            toast.error("Please select a video thumbnail");
+            return;
+          }
+
           if (!videoData.title.trim()) {
             toast.error("Please enter a video title");
             return;
@@ -540,6 +571,11 @@ const NewsAdminDashboard = () => {
             formData.append("video", localVideoFile);
             formData.append("title", videoData.title);
             formData.append("duration", videoData.duration);
+
+            // Your code has this, which is correct:
+            if (videoThumbnailFile) {
+              formData.append("thumbnail", videoThumbnailFile);
+            }
 
             const response = await axios.post(
               `${backendURL}/api/videos`,
@@ -864,23 +900,22 @@ const NewsAdminDashboard = () => {
                 {(editData ? "Edit" : "Create New") +
                   " " +
                   ((editType || articleType) === "regular" ||
-                  (editType || articleType) === "article"
+                    (editType || articleType) === "article"
                     ? "Article"
                     : (editType || articleType) === "live"
-                    ? "Live News"
-                    : (editType || articleType) === "breaking"
-                    ? "Breaking News"
-                    : "Video")}
+                      ? "Live News"
+                      : (editType || articleType) === "breaking"
+                        ? "Breaking News"
+                        : "Video")}
               </h2>
               <div className="flex flex-wrap gap-2 mt-2">
                 <button
                   onClick={() => setArticleType("regular")}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                    (editType || articleType) === "regular" ||
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${(editType || articleType) === "regular" ||
                     (editType || articleType) === "article"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                    ? "bg-red-100 text-red-800"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
                   disabled={!!editData}
                 >
                   <FileText size={16} className="inline mr-1" />
@@ -888,11 +923,10 @@ const NewsAdminDashboard = () => {
                 </button>
                 <button
                   onClick={() => setArticleType("live")}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                    (editType || articleType) === "live"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${(editType || articleType) === "live"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
                   disabled={!!editData}
                 >
                   <Clock size={16} className="inline mr-1" />
@@ -900,11 +934,10 @@ const NewsAdminDashboard = () => {
                 </button>
                 <button
                   onClick={() => setArticleType("breaking")}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                    (editType || articleType) === "breaking"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${(editType || articleType) === "breaking"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
                   disabled={!!editData}
                 >
                   <AlertTriangle size={16} className="inline mr-1" />
@@ -912,11 +945,10 @@ const NewsAdminDashboard = () => {
                 </button>
                 <button
                   onClick={() => setArticleType("video")}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                    (editType || articleType) === "video"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${(editType || articleType) === "video"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
                   disabled={!!editData}
                 >
                   <Video size={16} className="inline mr-1" />
@@ -1200,107 +1232,28 @@ const NewsAdminDashboard = () => {
                     </div>
                   </div>
                 </div>
-              </>
-            )}
-
-            {/* Regular Article Form */}
-            {((editType || articleType) === "regular" ||
-              (editType || articleType) === "article") && (
-              <>
-                <div>
-                  <label
-                    htmlFor="title"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Article Title *
-                  </label>
-                  <input
-                    type="text"
-                    id="title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="content"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Content *
-                  </label>
-                  <textarea
-                    id="content"
-                    name="content"
-                    value={formData.content}
-                    onChange={handleChange}
-                    rows={8}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    required
-                    placeholder="Write your content here..."
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="author"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Author *
-                  </label>
-                  <input
-                    type="text"
-                    id="author"
-                    name="author"
-                    value={formData.author}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="category"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Category *
-                  </label>
-                  <select
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select a category</option>
-                    <option value="রাজ্য">রাজ্য</option>
-                    <option value="দেশ">দেশ</option>
-                    <option value="বিদেশ">বিদেশ</option>
-                    <option value="খেলা">খেলা</option>
-                    <option value="প্রযুক্তি">প্রযুক্তি</option>
-                    <option value="অন্যান্য">অন্যান্য</option>
-                  </select>
-                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Article Image
+                    Video Thumbnail *
                   </label>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="relative">
-                      {imagePreview || (editData && editData.imageUrl) ? (
+                      {videoThumbnailPreview ? (
                         <div className="group relative">
                           <img
-                            src={imagePreview || editData?.imageUrl}
-                            alt="Preview"
-                            className="h-24 w-24 rounded-md object-cover border border-gray-300"
+                            src={videoThumbnailPreview}
+                            alt="Thumbnail Preview"
+                            className="h-24 w-40 rounded-md object-cover border border-gray-300"
                           />
                           <button
                             type="button"
                             onClick={() => {
-                              setImagePreview(null);
-                              setImageFile(null);
+                              setVideoThumbnailPreview(null);
+                              setVideoThumbnailFile(null);
+                              // Clear the file input
+                              const fileInput =
+                                document.getElementById("videoThumbnail");
+                              if (fileInput) fileInput.value = "";
                             }}
                             className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
@@ -1308,140 +1261,278 @@ const NewsAdminDashboard = () => {
                           </button>
                         </div>
                       ) : (
-                        <div className="h-24 w-24 rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center">
+                        <div className="h-24 w-40 rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
                           <ImageIcon size={24} className="text-gray-400" />
+                          <span className="ml-2 text-xs text-gray-400">
+                            No Thumbnail
+                          </span>
                         </div>
                       )}
                     </div>
                     <div className="flex-1 w-full">
                       <input
                         type="file"
-                        id="image"
-                        name="image"
-                        onChange={handleImageChange}
+                        id="videoThumbnail"
+                        onChange={handleVideoThumbnailChange}
                         accept="image/*"
                         className="hidden"
                       />
                       <label
-                        htmlFor="image"
+                        htmlFor="videoThumbnail"
                         className="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer text-center"
                       >
-                        {imagePreview || (editData && editData.imageUrl)
-                          ? "Change Image"
-                          : "Upload Image"}
+                        {videoThumbnailPreview
+                          ? "Change Thumbnail"
+                          : "Upload Thumbnail"}
                       </label>
                       <p className="mt-1 text-xs text-gray-500">
                         JPG, PNG or GIF (Max: 5MB)
                       </p>
                     </div>
                   </div>
-                  <div className="mt-2">
-                    <label
-                      htmlFor="imageTitle"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Image Title/Alt Text
-                    </label>
-                    <input
-                      type="text"
-                      id="imageTitle"
-                      name="imageTitle"
-                      value={formData.imageTitle}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                      placeholder="Describe the image for accessibility"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label
-                    htmlFor="tags"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Tags
-                  </label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {formData.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
-                      >
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => handleTagRemove(tag)}
-                          className="ml-1.5 inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
-                        >
-                          <X size={12} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      id="newTag"
-                      name="newTag"
-                      value={formData.newTag}
-                      onChange={handleChange}
-                      placeholder="Add a tag"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleTagAdd}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors flex items-center justify-center"
-                    >
-                      <Tag size={16} className="mr-1" />
-                      Add
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Article Flags
-                  </label>
-                  <div className="flex flex-wrap gap-6">
-                    <label className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        name="trending"
-                        checked={formData.trending}
-                        onChange={handleChange}
-                        className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">
-                        Trending
-                      </span>
-                    </label>
-                    <label className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        name="editorsChoice"
-                        checked={formData.editorsChoice}
-                        onChange={handleChange}
-                        className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">
-                        Editor's Choice
-                      </span>
-                    </label>
-                    <label className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        name="latestNews"
-                        checked={formData.latestNews}
-                        onChange={handleChange}
-                        className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">
-                        Latest News
-                      </span>
-                    </label>
-                  </div>
                 </div>
               </>
             )}
+
+            {/* Regular Article Form */}
+            {((editType || articleType) === "regular" ||
+              (editType || articleType) === "article") && (
+                <>
+                  <div>
+                    <label
+                      htmlFor="title"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Article Title *
+                    </label>
+                    <input
+                      type="text"
+                      id="title"
+                      name="title"
+                      value={formData.title}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="content"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Content *
+                    </label>
+                    <textarea
+                      id="content"
+                      name="content"
+                      value={formData.content}
+                      onChange={handleChange}
+                      rows={8}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      required
+                      placeholder="Write your content here..."
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="author"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Author *
+                    </label>
+                    <input
+                      type="text"
+                      id="author"
+                      name="author"
+                      value={formData.author}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="category"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Category *
+                    </label>
+                    <select
+                      id="category"
+                      name="category"
+                      value={formData.category}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      required
+                    >
+                      <option value="">Select a category</option>
+                      <option value="রাজ্য">রাজ্য</option>
+                      <option value="দেশ">দেশ</option>
+                      <option value="বিদেশ">বিদেশ</option>
+                      <option value="খেলা">খেলা</option>
+                      <option value="প্রযুক্তি">প্রযুক্তি</option>
+                      <option value="অন্যান্য">অন্যান্য</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Article Image
+                    </label>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      <div className="relative">
+                        {imagePreview || (editData && editData.imageUrl) ? (
+                          <div className="group relative">
+                            <img
+                              src={imagePreview || editData?.imageUrl}
+                              alt="Preview"
+                              className="h-24 w-24 rounded-md object-cover border border-gray-300"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setImagePreview(null);
+                                setImageFile(null);
+                              }}
+                              className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="h-24 w-24 rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center">
+                            <ImageIcon size={24} className="text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 w-full">
+                        <input
+                          type="file"
+                          id="image"
+                          name="image"
+                          onChange={handleImageChange}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="image"
+                          className="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer text-center"
+                        >
+                          {imagePreview || (editData && editData.imageUrl)
+                            ? "Change Image"
+                            : "Upload Image"}
+                        </label>
+                        <p className="mt-1 text-xs text-gray-500">
+                          JPG, PNG or GIF (Max: 5MB)
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <label
+                        htmlFor="imageTitle"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Image Title/Alt Text
+                      </label>
+                      <input
+                        type="text"
+                        id="imageTitle"
+                        name="imageTitle"
+                        value={formData.imageTitle}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        placeholder="Describe the image for accessibility"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="tags"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Tags
+                    </label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {formData.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => handleTagRemove(tag)}
+                            className="ml-1.5 inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
+                          >
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        id="newTag"
+                        name="newTag"
+                        value={formData.newTag}
+                        onChange={handleChange}
+                        placeholder="Add a tag"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleTagAdd}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors flex items-center justify-center"
+                      >
+                        <Tag size={16} className="mr-1" />
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Article Flags
+                    </label>
+                    <div className="flex flex-wrap gap-6">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="trending"
+                          checked={formData.trending}
+                          onChange={handleChange}
+                          className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">
+                          Trending
+                        </span>
+                      </label>
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="editorsChoice"
+                          checked={formData.editorsChoice}
+                          onChange={handleChange}
+                          className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">
+                          Editor's Choice
+                        </span>
+                      </label>
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="latestNews"
+                          checked={formData.latestNews}
+                          onChange={handleChange}
+                          className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">
+                          Latest News
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
 
             <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-gray-200">
               <button
@@ -1486,13 +1577,13 @@ const NewsAdminDashboard = () => {
                     {(editData ? "Update" : "Publish") +
                       " " +
                       ((editType || articleType) === "regular" ||
-                      (editType || articleType) === "article"
+                        (editType || articleType) === "article"
                         ? "Article"
                         : (editType || articleType) === "live"
-                        ? "Live Headlines"
-                        : (editType || articleType) === "breaking"
-                        ? "Breaking News"
-                        : "Video")}
+                          ? "Live Headlines"
+                          : (editType || articleType) === "breaking"
+                            ? "Breaking News"
+                            : "Video")}
                   </>
                 )}
               </button>
@@ -1515,9 +1606,8 @@ const NewsAdminDashboard = () => {
               {stat.value}
             </p>
             <p
-              className={`text-xs md:text-sm mt-1 ${
-                stat.change.startsWith("+") ? "text-green-600" : "text-red-600"
-              }`}
+              className={`text-xs md:text-sm mt-1 ${stat.change.startsWith("+") ? "text-green-600" : "text-red-600"
+                }`}
             >
               {stat.change} from last period
             </p>
@@ -1565,10 +1655,10 @@ const NewsAdminDashboard = () => {
         {type === "live"
           ? "Live"
           : type === "breaking"
-          ? "Breaking"
-          : type === "video"
-          ? "Video"
-          : "Article"}
+            ? "Breaking"
+            : type === "video"
+              ? "Video"
+              : "Article"}
       </span>
     );
   };
@@ -1599,21 +1689,19 @@ const NewsAdminDashboard = () => {
                   <div className="flex bg-gray-100 rounded-lg p-1">
                     <button
                       onClick={() => setChartType("line")}
-                      className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                        chartType === "line"
-                          ? "bg-white text-gray-900 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}
+                      className={`px-3 py-1 text-sm rounded-md transition-colors ${chartType === "line"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                        }`}
                     >
                       Line
                     </button>
                     <button
                       onClick={() => setChartType("bar")}
-                      className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                        chartType === "bar"
-                          ? "bg-white text-gray-900 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}
+                      className={`px-3 py-1 text-sm rounded-md transition-colors ${chartType === "bar"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                        }`}
                     >
                       Bar
                     </button>
@@ -1882,13 +1970,12 @@ const NewsAdminDashboard = () => {
                         </td>
                         <td className="px-4 py-3 md:px-6 md:py-4">
                           <span
-                            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                              article.status === "Published"
-                                ? "bg-green-100 text-green-800"
-                                : article.status === "Draft"
+                            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${article.status === "Published"
+                              ? "bg-green-100 text-green-800"
+                              : article.status === "Draft"
                                 ? "bg-yellow-100 text-yellow-800"
                                 : "bg-blue-100 text-blue-800"
-                            }`}
+                              }`}
                           >
                             {article.status || "Published"}
                           </span>
