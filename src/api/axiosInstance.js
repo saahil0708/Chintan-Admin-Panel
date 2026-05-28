@@ -7,7 +7,7 @@ export const backendURL = import.meta.env.MODE === 'production'
 const api = axios.create({
     baseURL: backendURL,
     withCredentials: true,
-    timeout: 10000,
+    timeout: 120000, // 2 minutes to accommodate server cold starts
 });
 
 api.interceptors.response.use(
