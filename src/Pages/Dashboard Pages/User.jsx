@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Users, Mail, Calendar, Eye, EyeOff, X } from 'lucide-react';
-import axios from 'axios';
+import { useDispatch, useSelector } from 'react-redux';
+import { setLoading } from '../../redux/slices/authSlice';
+import api from '../../api/axiosInstance';
 import { toast } from 'react-toastify';
-import { useAppContext } from '../../Context/AppContext';
+import { 
+  Box, Typography, Button, TextField, InputAdornment, 
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, 
+  Paper, Dialog, DialogTitle, DialogContent, DialogActions, 
+  CircularProgress, Avatar, IconButton, Card, Grid 
+} from '@mui/material';
 
 const UsersAdminUI = () => {
-  const { backendURL, isLoading, setIsLoading } = useAppContext();
+  const dispatch = useDispatch();
+  const { isLoading } = useSelector((state) => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -16,26 +24,28 @@ const UsersAdminUI = () => {
     password: ''
   });
   const [users, setUsers] = useState([]);
+  
+  // Delete Dialog State
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   // Fetch all users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        setIsLoading(true);
-        const response = await axios.get(`${backendURL}/api/users`, { 
-          withCredentials: true 
-        });
+        dispatch(setLoading(true));
+        const response = await api.get(`/api/users`);
         setUsers(response.data);
       } catch (error) {
         console.error('Fetch users error:', error);
         toast.error(error.response?.data?.message || "Failed to fetch users");
         setUsers([]);
       } finally {
-        setIsLoading(false);
+        dispatch(setLoading(false));
       }
     };
     fetchUsers();
-  }, [backendURL, setIsLoading]);
+  }, [dispatch]);
 
   // Filter users
   const filteredUsers = users.filter(user => {
@@ -54,12 +64,12 @@ const UsersAdminUI = () => {
     }
 
     try {
-      setIsLoading(true);
-      const response = await axios.post(`${backendURL}/api/auth/register`, {
+      dispatch(setLoading(true));
+      const response = await api.post(`/api/auth/register`, {
         name: newUser.name,
         email: newUser.email,
         password: newUser.password
-      }, { withCredentials: true });
+      });
 
       // Create complete user object for state
       const createdUser = {
@@ -79,7 +89,7 @@ const UsersAdminUI = () => {
       console.error('Registration error:', error.response?.data || error);
       toast.error(error.response?.data?.message || 'Registration failed');
     } finally {
-      setIsLoading(false);
+      dispatch(setLoading(false));
     }
   };
 
@@ -102,7 +112,7 @@ const UsersAdminUI = () => {
     }
 
     try {
-      setIsLoading(true);
+      dispatch(setLoading(true));
       const updateData = {
         name: newUser.name,
         email: newUser.email
@@ -112,10 +122,9 @@ const UsersAdminUI = () => {
         updateData.password = newUser.password;
       }
 
-      const response = await axios.put(
-        `${backendURL}/api/users/${editingUser._id}`,
-        updateData,
-        { withCredentials: true }
+      const response = await api.put(
+        `/api/users/${editingUser._id}`,
+        updateData
       );
 
       setUsers(users.map(user => 
@@ -127,26 +136,30 @@ const UsersAdminUI = () => {
       console.error('Update error:', error.response?.data || error);
       toast.error(error.response?.data?.message || 'Update failed');
     } finally {
-      setIsLoading(false);
+      dispatch(setLoading(false));
     }
   };
 
-  // Delete user
-  const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
+  // Delete user handlers
+  const handleDeleteClick = (user) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
 
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
     try {
-      setIsLoading(true);
-      await axios.delete(`${backendURL}/api/users/${userId}`, {
-        withCredentials: true
-      });
-      setUsers(users.filter(user => user._id !== userId));
+      dispatch(setLoading(true));
+      await api.delete(`/api/users/${userToDelete._id}`);
+      setUsers(users.filter(user => user._id !== userToDelete._id));
       toast.success('User deleted successfully');
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
     } catch (error) {
       console.error('Delete error:', error.response?.data || error);
       toast.error(error.response?.data?.message || 'Delete failed');
     } finally {
-      setIsLoading(false);
+      dispatch(setLoading(false));
     }
   };
 
@@ -162,7 +175,27 @@ const UsersAdminUI = () => {
     });
   };
 
-  // Format date
+  // Format date & check online status
+  const isOnline = (dateString) => {
+    if (!dateString || dateString === "Never") return false;
+    const date = new Date(dateString);
+    const now = new Date();
+    // Consider "Online" if logged in within the last 15 minutes
+    return (now - date) < (15 * 60 * 1000);
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString || dateString === "Never") return "Never";
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const formatDate = (dateString) => {
     if (!dateString || dateString === "Never") return "Never";
     const date = new Date(dateString);
@@ -173,247 +206,323 @@ const UsersAdminUI = () => {
     });
   };
 
-  // Calculate total articles
-  const totalArticles = users.reduce((sum, user) => sum + (user.articlesWritten || 0), 0);
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Users Management</h1>
-              <p className="mt-2 text-gray-600">Manage system users</p>
-            </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-red-800 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-900 transition-colors flex items-center"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Add User
-            </button>
-          </div>
-        </div>
-      </header>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'transparent', pb: 8 }}>
+      {/* Header Section */}
+      <Box sx={{ maxWidth: 1500, mx: 'auto', px: { xs: 2, sm: 4, lg: 6 }, pt: 4, mb: 4 }}>
+        <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: 3, border: '1px solid rgba(0,0,0,0.06)', bgcolor: 'white' }}>
+          <Box sx={{ width: '100%', mx: 'auto' }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', lg: 'center' }, gap: 3 }}>
+              {/* Left Side: Title & Stat */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <Box>
+                  <Typography variant="h4" fontWeight={800} color="#111827" sx={{ mb: 0.5, letterSpacing: '-0.02em' }}>
+                    Users Management
+                  </Typography>
+                  <Typography variant="body2" color="#64748b">
+                    Manage system users and administrative access
+                  </Typography>
+                </Box>
+                
+                {/* Vertical Divider */}
+                <Box sx={{ height: 40, width: '1px', bgcolor: 'rgba(0,0,0,0.1)', display: { xs: 'none', sm: 'block' } }} />
+                
+                {/* Compact Stat Box */}
+                <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ p: 1, bgcolor: 'rgba(202, 0, 25, 0.08)', borderRadius: 2 }}>
+                    <Users size={20} color="#CA0019" />
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="#64748b" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 0.2 }}>
+                      Total
+                    </Typography>
+                    <Typography variant="subtitle2" fontWeight={800} color="#111827" sx={{ lineHeight: 1 }}>
+                      {users.length} Users
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-red-100 rounded-lg">
-                <Users className="w-6 h-6 text-red-800" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Edit className="w-6 h-6 text-blue-800" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Articles</p>
-                <p className="text-2xl font-bold text-gray-900">{totalArticles}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Search */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <input
-              type="text"
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-800 focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        {/* Users Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Articles</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredUsers.map(user => (
-                  <tr key={user._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <img
-                          src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`}
-                          alt={user.name}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {user.name}
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center">
-                            <Mail className="w-3 h-3 mr-1" />
-                            {user.email}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {user.articlesWritten || 0}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatDate(user.lastLogin)}</div>
-                      <div className="text-xs text-gray-500 flex items-center">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        Joined {formatDate(user.createdAt)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleEditUser(user)}
-                          className="p-2 text-gray-400 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(user._id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* No Results */}
-        {filteredUsers.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <Users className="w-16 h-16 mx-auto" />
-            </div>
-            <h3 className="text-xl font-medium text-gray-900 mb-2">
-              {users.length === 0 ? 'No users found' : 'No matching users found'}
-            </h3>
-            <p className="text-gray-600">
-              {users.length === 0 ? 'The system has no users yet' : 'Try adjusting your search terms'}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Add/Edit User Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">
-                {editingUser ? 'Edit User' : 'Add New User'}
-              </h2>
-              <button
-                onClick={resetForm}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              {/* Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                  placeholder="Enter full name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-800 focus:border-transparent"
-                  required
+              {/* Right Side: Search & Action */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: { xs: '100%', lg: 'auto' } }}>
+                <TextField
+                  variant="outlined"
+                  size="small"
+                  label="Search users"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search size={18} color="#94a3b8" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ 
+                    width: { xs: '100%', lg: 250 },
+                    bgcolor: 'white',
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 1,
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#CA0019',
+                      },
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': {
+                      color: '#CA0019',
+                    }
+                  }}
                 />
-              </div>
+                <Button
+                  variant="contained"
+                  startIcon={<Plus size={18} />}
+                  onClick={() => setShowAddModal(true)}
+                  sx={{ 
+                    bgcolor: '#CA0019', 
+                    '&:hover': { bgcolor: '#b71c1c' },
+                    fontWeight: 600,
+                    px: 3,
+                    py: 1,
+                    borderRadius: 1,
+                    textTransform: 'none',
+                    boxShadow: 'none',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  Add User
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+        </Paper>
+      </Box>
+
+      {/* Main Content */}
+      <Box sx={{ maxWidth: 1350, mx: 'auto', px: { xs: 2, sm: 4, lg: 6 } }}>
+        
+        {isLoading && users.length === 0 ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 12 }}>
+            <CircularProgress size={40} sx={{ color: '#CA0019' }} />
+          </Box>
+        ) : filteredUsers.length > 0 ? (
+          <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+            <Table sx={{ minWidth: 650 }} aria-label="users table">
+              <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700, color: '#64748b', py: 2, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>User Profile</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: '#64748b', py: 2, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>Account Details</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: '#64748b', py: 2, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>Status</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, color: '#64748b', py: 2, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>Quick Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow
+                    key={user._id}
+                    sx={{ '&:last-child td, &:last-child th': { border: 0 }, transition: 'all 0.2s ease', '&:hover': { bgcolor: '#f1f5f9' } }}
+                  >
+                    <TableCell sx={{ py: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                        <Avatar 
+                          src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`} 
+                          alt={user.name} 
+                          sx={{ width: 48, height: 48, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '2px solid #ffffff' }}
+                        />
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight={700} color="#111827" sx={{ mb: 0.2 }}>
+                            {user.name}
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#64748b' }}>
+                            <Mail size={14} />
+                            <Typography variant="body2">{user.email}</Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ py: 3 }}>
+                      <Typography variant="body2" fontWeight={600} color="#111827" sx={{ mb: 0.5, textTransform: 'capitalize' }}>
+                        {user.role || 'Member'}
+                      </Typography>
+                      <Typography variant="caption" color="#94a3b8" sx={{ fontFamily: 'monospace' }}>
+                        ID: {user._id?.substring(0, 8) || 'N/A'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: isOnline(user.lastLogin) ? '#10b981' : '#cbd5e1' }} />
+                        <Typography variant="body2" fontWeight={600} color={isOnline(user.lastLogin) ? '#10b981' : '#64748b'}>
+                          {isOnline(user.lastLogin) ? 'Online' : 'Offline'}
+                        </Typography>
+                      </Box>
+                      <Typography variant="caption" color="#94a3b8" fontWeight={500}>
+                        Last seen: {formatDateTime(user.lastLogin || user.createdAt)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right" sx={{ py: 3 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
+                        <IconButton 
+                          onClick={() => handleEditUser(user)} 
+                          sx={{ color: '#64748b', bgcolor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 2, transition: 'all 0.2s', '&:hover': { color: '#0f172a', bgcolor: '#e2e8f0', transform: 'translateY(-2px)' } }}
+                        >
+                          <Edit size={18} />
+                        </IconButton>
+                        <IconButton 
+                          onClick={() => handleDeleteClick(user)} 
+                          sx={{ color: '#CA0019', bgcolor: 'rgba(202,0,25,0.05)', border: '1px solid rgba(202,0,25,0.1)', borderRadius: 2, transition: 'all 0.2s', '&:hover': { bgcolor: 'rgba(202,0,25,0.1)', transform: 'translateY(-2px)' } }}
+                        >
+                          <Trash2 size={18} />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <Box sx={{ px: 3, py: 2, borderTop: '1px solid rgba(0,0,0,0.06)', bgcolor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="body2" color="#64748b" fontWeight={500}>
+                Showing <Typography component="span" fontWeight={700} color="#111827">{filteredUsers.length}</Typography> of <Typography component="span" fontWeight={700} color="#111827">{users.length}</Typography> users
+              </Typography>
+            </Box>
+          </TableContainer>
+        ) : (
+          <Box sx={{ textAlign: 'center', py: 12 }}>
+            <Users size={64} color="#cbd5e1" style={{ margin: '0 auto', marginBottom: 16 }} />
+            <Typography variant="h5" color="#111827" fontWeight={600} mb={1}>
+              {users.length === 0 ? 'No users found' : 'No matching users found'}
+            </Typography>
+            <Typography color="#64748b">
+              {users.length === 0 ? 'The system has no users yet.' : 'Try adjusting your search terms.'}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Add/Edit User Dialog */}
+        <Dialog 
+          open={showAddModal} 
+          onClose={resetForm}
+          PaperProps={{ sx: { borderRadius: 3, width: '100%', maxWidth: 450 } }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+            <Typography variant="h6" fontWeight={800} color="#111827">
+              {editingUser ? 'Edit User' : 'Add New User'}
+            </Typography>
+            <IconButton onClick={resetForm} size="small" sx={{ color: '#64748b' }}>
+              <X size={20} />
+            </IconButton>
+          </Box>
+          <DialogContent sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {/* Name */}
+              {/* Name */}
+              <TextField
+                fullWidth
+                size="small"
+                label="Full Name *"
+                value={newUser.name}
+                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': { borderRadius: 1, '&.Mui-focused fieldset': { borderColor: '#CA0019' } },
+                  '& .MuiInputLabel-root.Mui-focused': { color: '#CA0019' }
+                }}
+              />
 
               {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  placeholder="Enter email address"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-800 focus:border-transparent"
-                  required
-                />
-              </div>
+              <TextField
+                fullWidth
+                size="small"
+                type="email"
+                label="Email Address *"
+                value={newUser.email}
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': { borderRadius: 1, '&.Mui-focused fieldset': { borderColor: '#CA0019' } },
+                  '& .MuiInputLabel-root.Mui-focused': { color: '#CA0019' }
+                }}
+              />
 
               {/* Password */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {editingUser ? 'New Password (leave blank to keep current)' : 'Password *'}
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={newUser.password}
-                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                    placeholder={editingUser ? 'Leave blank to keep current' : 'Enter password'}
-                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-800 focus:border-transparent"
-                    required={!editingUser}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-            </div>
+              <TextField
+                fullWidth
+                size="small"
+                type={showPassword ? "text" : "password"}
+                label={editingUser ? 'New Password (optional)' : 'Password *'}
+                value={newUser.password}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': { borderRadius: 1, '&.Mui-focused fieldset': { borderColor: '#CA0019' } },
+                  '& .MuiInputLabel-root.Mui-focused': { color: '#CA0019' }
+                }}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 3, borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+            <Button 
+              onClick={resetForm}
+              sx={{ color: '#64748b', fontWeight: 600, textTransform: 'none', px: 2 }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={editingUser ? handleUpdateUser : handleAddUser}
+              variant="contained"
+              disabled={isLoading}
+              sx={{ 
+                bgcolor: '#CA0019', 
+                '&:hover': { bgcolor: '#b71c1c' }, 
+                fontWeight: 600, 
+                textTransform: 'none', 
+                borderRadius: 1, 
+                px: 3, 
+                boxShadow: 'none' 
+              }}
+            >
+              {isLoading ? 'Processing...' : editingUser ? 'Update User' : 'Add User'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
-              <button
-                onClick={resetForm}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={editingUser ? handleUpdateUser : handleAddUser}
-                disabled={isLoading}
-                className={`px-4 py-2 bg-red-800 text-white rounded-lg font-medium hover:bg-red-900 transition-colors ${
-                  isLoading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
-              >
-                {isLoading ? 'Processing...' : editingUser ? 'Update' : 'Add'} User
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          PaperProps={{ sx: { borderRadius: 1, padding: 1, minWidth: { xs: 300, sm: 400 } } }}
+        >
+          <DialogTitle sx={{ fontWeight: 800, color: '#111827', pb: 1 }}>
+            Delete User
+          </DialogTitle>
+          <DialogContent>
+            <Typography color="#475569">
+              Are you sure you want to delete <Typography component="span" fontWeight={700}>"{userToDelete?.name}"</Typography>? This action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2, pt: 1 }}>
+            <Button 
+              onClick={() => setDeleteDialogOpen(false)}
+              sx={{ color: '#64748b', fontWeight: 600, textTransform: 'none', px: 2 }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={confirmDeleteUser} 
+              variant="contained"
+              startIcon={<Trash2 size={16} />}
+              sx={{ bgcolor: '#CA0019', '&:hover': { bgcolor: '#b71c1c' }, fontWeight: 600, textTransform: 'none', borderRadius: 1, px: 3, boxShadow: 'none' }}
+            >
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+      </Box>
+    </Box>
   );
 };
 

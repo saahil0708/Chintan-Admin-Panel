@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, User, Tag, Clock, Heart, MessageCircle, Share2, ArrowLeft } from 'lucide-react';
-import axios from 'axios';
-import { useAppContext } from '../Context/AppContext';
+import api from '../api/axiosInstance';
 import RichContentRenderer from './RichContentRenderer';
 
 const ArticleDetail = ({ articleId, onBack }) => {
@@ -11,7 +10,6 @@ const ArticleDetail = ({ articleId, onBack }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
 
-  const { backendURL } = useAppContext();
 
   useEffect(() => {
     fetchArticle();
@@ -19,9 +17,7 @@ const ArticleDetail = ({ articleId, onBack }) => {
 
   const fetchArticle = async () => {
     try {
-      const response = await axios.get(`${backendURL}/api/articles/${articleId}`, {
-        withCredentials: true,
-      });
+      const response = await api.get(`/api/articles/${articleId}`);
       setArticle(response.data);
       setIsLiked(response.data.isLiked || false);
       setLikeCount(response.data.likes || 0);
@@ -34,9 +30,7 @@ const ArticleDetail = ({ articleId, onBack }) => {
 
   const handleLike = async () => {
     try {
-      const response = await axios.patch(`${backendURL}/api/articles/${articleId}/like`, {}, {
-        withCredentials: true,
-      });
+      const response = await api.patch(`/api/articles/${articleId}/like`, {});
       setIsLiked(response.data.liked);
       setLikeCount(response.data.likes);
     } catch (error) {

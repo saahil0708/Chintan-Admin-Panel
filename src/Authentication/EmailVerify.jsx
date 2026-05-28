@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Mail, ArrowLeft, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../Context/AppContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { verifyEmail, sendVerificationOTP } from '../redux/slices/authSlice';
 import { toast } from 'react-toastify';
 
 export default function EmailVerificationOTP() {
-  const { userData, verifyEmail, sendVerificationOTP } = useAppContext();
+  const { userData } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -71,7 +73,7 @@ export default function EmailVerificationOTP() {
     
     setIsVerifying(true);
     try {
-      const verified = await verifyEmail(otpString);
+      const verified = await dispatch(verifyEmail({ email: userData?.email, otp: otpString })).unwrap();
       if (verified) {
         toast.success("Email verified successfully!");
         navigate('/dashboard');
@@ -84,7 +86,7 @@ export default function EmailVerificationOTP() {
   const handleResend = async () => {
     setIsResending(true);
     try {
-      const sent = await sendVerificationOTP();
+      const sent = await dispatch(sendVerificationOTP(userData?.email)).unwrap();
       if (sent) {
         toast.success("New verification code sent to your email");
         setTimeLeft(120);

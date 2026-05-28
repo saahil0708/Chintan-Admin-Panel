@@ -21,9 +21,10 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-import { useAppContext } from "../Context/AppContext";
+import { useDispatch, useSelector } from "react-redux";
+import { logoutUser, sendVerificationOTP, verifyEmail } from "../redux/slices/authSlice";
+import api from "../api/axiosInstance";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -36,7 +37,8 @@ const AdminNavbar = () => {
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
 
-  const { userData, logout, backendURL, sendVerificationOTP, verifyEmail } = useAppContext();
+  const { userData } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -97,7 +99,7 @@ const AdminNavbar = () => {
 
   const handleLogout = async () => {
     try {
-      await logout();
+      await dispatch(logoutUser());
       navigate("/");
       // toast.success("Logged Out Successfully");
     } catch (error) {
@@ -110,11 +112,7 @@ const AdminNavbar = () => {
 
   const handleVerifyEmail = async () => {
     try {
-      const { data } = await axios.post(
-        `${backendURL}/api/auth/send-verification`,
-        {},
-        { withCredentials: true }
-      );
+      const { data } = await api.post(`/api/auth/send-verification`, {});
       if (data.success) {
         toast.success(data.message || "Verification email sent!");
       } else {
@@ -307,8 +305,8 @@ const AdminNavbar = () => {
                       {!showOtpInput ? (
                         <button
                           onClick={async () => {
-                            const sent = await sendVerificationOTP();
-                            if (sent) setShowOtpInput(true);
+                            const result = await dispatch(sendVerificationOTP(userData?.email)).unwrap();
+                            if (result) setShowOtpInput(true);
                           }}
                           className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 transition-colors duration-200 flex items-center space-x-3 group"
                         >
@@ -327,7 +325,7 @@ const AdminNavbar = () => {
                           />
                           <button
                             onClick={async () => {
-                              const verified = await verifyEmail(otp);
+                              const verified = await dispatch(verifyEmail({ email: userData?.email, otp })).unwrap();
                               if (verified) setShowOtpInput(false);
                             }}
                             className="bg-red-800 text-white rounded px-2 py-1 text-sm hover:bg-red-700"

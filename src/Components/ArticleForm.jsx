@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Plus, X, Upload, Edit, Trash2 } from "lucide-react";
 import RichTextEditor from "./RichTextEditor";
-import axios from "axios";
-import { useAppContext } from "../Context/AppContext";
+import api, { backendURL } from "../api/axiosInstance";
 import { toast } from "react-toastify";
 
 const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
-  const { backendURL } = useAppContext();
 
   const [formData, setFormData] = useState({
     title: "",
-    content: "", // This will now store the rich content HTML
+    content: "", 
+    richContent: "", // This will store the rich content HTML
     author: "",
     category: "",
     tags: "",
@@ -31,7 +30,8 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
     if (article) {
       setFormData({
         title: article.title || "",
-        content: article.content || article.richContent || "", // Combine both fields
+        content: article.content || "",
+        richContent: article.richContent || article.content || "", // Combine both fields
         author: article.author || "",
         category: Array.isArray(article.category)
           ? article.category[0]
@@ -66,10 +66,11 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
     }));
   };
 
-  const handleContentChange = (html) => {
+  const handleContentChange = (html, text) => {
     setFormData((prev) => ({
       ...prev,
-      content: html,
+      content: text || html.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' '),
+      richContent: html,
     }));
   };
 
@@ -92,11 +93,10 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
         const formData = new FormData();
         formData.append("image", file);
 
-        const response = await axios.post(
-          `${backendURL}/api/upload`,
+        const response = await api.post(
+          `/api/upload`,
           formData,
           {
-            withCredentials: true,
             headers: { "Content-Type": "multipart/form-data" },
           }
         );
@@ -151,18 +151,13 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
       let response;
       if (article) {
         // Update existing article
-        response = await axios.put(
-          `${backendURL}/api/articles/${article._id}`,
-          submitData,
-          {
-            withCredentials: true,
-          }
+        response = await api.put(
+          `/api/articles/${article._id}`,
+          submitData
         );
       } else {
         // Create new article
-        response = await axios.post(`${backendURL}/api/articles`, submitData, {
-          withCredentials: true,
-        });
+        response = await api.post(`/api/articles`, submitData);
       }
 
       // Upload main image if selected
@@ -170,11 +165,10 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
         const imageFormData = new FormData();
         imageFormData.append("image", mainImage);
 
-        await axios.post(
-          `${backendURL}/api/articles/${response.data._id}/image`,
+        await api.post(
+          `/api/articles/${response.data._id}/image`,
           imageFormData,
           {
-            withCredentials: true,
             headers: { "Content-Type": "multipart/form-data" },
           }
         );
@@ -287,7 +281,7 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
             Content *
           </label>
           <RichTextEditor
-            content={formData.content}
+            content={formData.richContent}
             onChange={handleContentChange}
             placeholder="Write your article content..."
             className={`border ${

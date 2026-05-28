@@ -9,20 +9,21 @@
 // export default PrivateRoute;
 
 import { Navigate, Outlet } from "react-router-dom"
-import { useAppContext } from "../Context/AppContext"
+import { useSelector } from "react-redux"
+import { Box, CircularProgress, Typography } from "@mui/material"
 
 const PrivateRoute = () => {
-  const { isLoggedIn, isInitializing } = useAppContext()
+  const { isLoggedIn, isInitializing } = useSelector((state) => state.auth)
 
   // Show loading while initializing authentication state
   if (isInitializing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex items-center space-x-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-800"></div>
-          <span className="text-gray-600">Loading...</span>
-        </div>
-      </div>
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'white' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <CircularProgress size={40} sx={{ color: '#CA0019' }} />
+          <Typography color="#64748b" fontWeight={500}>Loading...</Typography>
+        </Box>
+      </Box>
     )
   }
 

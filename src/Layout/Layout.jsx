@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../Context/AppContext';
+import { useSelector } from 'react-redux';
 import AdminNavbar from '../Components/Navbar';
 
 const DashboardLayout = ({ children }) => {
-    const { isLoggedIn } = useAppContext();
+    const { isLoggedIn } = useSelector((state) => state.auth);
     const navigate = useNavigate();
 
     useEffect(() => {

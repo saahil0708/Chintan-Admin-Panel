@@ -37,7 +37,7 @@ const RichTextEditor = ({
     ],
     content: content || "",
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      onChange(editor.getHTML(), editor.getText());
     },
   });
 
