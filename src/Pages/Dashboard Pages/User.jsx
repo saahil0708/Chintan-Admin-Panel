@@ -30,21 +30,28 @@ const UsersAdminUI = () => {
   const [userToDelete, setUserToDelete] = useState(null);
 
   // Fetch all users
+  const fetchUsers = async (showLoader = true) => {
+    try {
+      if (showLoader) dispatch(setLoading(true));
+      const response = await api.get(`/api/users`);
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Fetch users error:', error);
+      if (showLoader) toast.error(error.response?.data?.message || "Failed to fetch users");
+    } finally {
+      if (showLoader) dispatch(setLoading(false));
+    }
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        dispatch(setLoading(true));
-        const response = await api.get(`/api/users`);
-        setUsers(response.data);
-      } catch (error) {
-        console.error('Fetch users error:', error);
-        toast.error(error.response?.data?.message || "Failed to fetch users");
-        setUsers([]);
-      } finally {
-        dispatch(setLoading(false));
-      }
-    };
     fetchUsers();
+
+    // Auto-refresh data every 60 seconds (polling)
+    const intervalId = setInterval(() => {
+      fetchUsers(false);
+    }, 60000);
+
+    return () => clearInterval(intervalId);
   }, [dispatch]);
 
   // Filter users
@@ -206,6 +213,17 @@ const UsersAdminUI = () => {
     });
   };
 
+  if (isLoading && users.length === 0) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'transparent' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <CircularProgress size={40} sx={{ color: '#CA0019' }} />
+          <Typography color="#64748b" fontWeight={500}>Loading users...</Typography>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'transparent', pb: 8 }}>
       {/* Header Section */}
@@ -304,7 +322,7 @@ const UsersAdminUI = () => {
             <CircularProgress size={40} sx={{ color: '#CA0019' }} />
           </Box>
         ) : filteredUsers.length > 0 ? (
-          <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+          <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid rgba(0,0,0,0.08)', overflowX: 'auto' }}>
             <Table sx={{ minWidth: 650 }} aria-label="users table">
               <TableHead sx={{ bgcolor: '#f8fafc' }}>
                 <TableRow>

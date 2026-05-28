@@ -29,18 +29,26 @@ const ArticlesUI = () => {
   // Fetch articles from API
   useEffect(() => {
     fetchArticles();
+
+    // Auto-refresh data every 60 seconds (polling)
+    const intervalId = setInterval(() => {
+      fetchArticles(false);
+    }, 60000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
-  const fetchArticles = async () => {
+  const fetchArticles = async (showLoader = true) => {
+    if (showLoader) setLoading(true);
     try {
       const response = await api.get(`/api/articles`, {
         withCredentials: true,
       });
       setArticles(response.data);
-      setLoading(false);
     } catch (err) {
       setError(err.message);
-      setLoading(false);
+    } finally {
+      if (showLoader) setLoading(false);
     }
   };
 
@@ -167,6 +175,17 @@ const ArticlesUI = () => {
           onSuccess={handleSaveArticle}
           onClose={handleCancelForm}
         />
+      </Box>
+    );
+  }
+
+  if (loading && articles.length === 0) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f8fafc' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <CircularProgress size={40} sx={{ color: '#CA0019' }} />
+          <Typography color="#64748b" fontWeight={500}>Loading articles...</Typography>
+        </Box>
       </Box>
     );
   }

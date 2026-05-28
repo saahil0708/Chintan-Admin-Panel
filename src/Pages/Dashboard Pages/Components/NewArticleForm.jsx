@@ -681,11 +681,14 @@ import RichTextEditor from '../../../Components/RichTextEditor';
               </div>
             )}
 
-            <div className="flex border-b border-gray-100 px-4 md:px-6">
+            <div className="flex border-b border-gray-100 px-4 md:px-6 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <style dangerouslySetInnerHTML={{__html: `
+                .overflow-x-auto::-webkit-scrollbar { display: none; }
+              `}} />
               <button
                 type="button"
                 onClick={() => setArticleType("regular")}
-                className={`px-4 py-3 text-sm font-semibold transition-all duration-200 border-b-2 flex items-center gap-2 ${
+                className={`whitespace-nowrap flex-shrink-0 px-4 py-3 text-sm font-semibold transition-all duration-200 border-b-2 flex items-center gap-2 ${
                   (editType || articleType) === "regular" || (editType || articleType) === "article"
                     ? "border-red-600 text-red-600 font-bold"
                     : "border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300"
@@ -698,7 +701,7 @@ import RichTextEditor from '../../../Components/RichTextEditor';
               <button
                 type="button"
                 onClick={() => setArticleType("live")}
-                className={`px-4 py-3 text-sm font-semibold transition-all duration-200 border-b-2 flex items-center gap-2 ${
+                className={`whitespace-nowrap flex-shrink-0 px-4 py-3 text-sm font-semibold transition-all duration-200 border-b-2 flex items-center gap-2 ${
                   (editType || articleType) === "live"
                     ? "border-red-600 text-red-600 font-bold"
                     : "border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300"
@@ -711,7 +714,7 @@ import RichTextEditor from '../../../Components/RichTextEditor';
               <button
                 type="button"
                 onClick={() => setArticleType("breaking")}
-                className={`px-4 py-3 text-sm font-semibold transition-all duration-200 border-b-2 flex items-center gap-2 ${
+                className={`whitespace-nowrap flex-shrink-0 px-4 py-3 text-sm font-semibold transition-all duration-200 border-b-2 flex items-center gap-2 ${
                   (editType || articleType) === "breaking"
                     ? "border-red-600 text-red-600 font-bold"
                     : "border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300"
@@ -724,7 +727,7 @@ import RichTextEditor from '../../../Components/RichTextEditor';
               <button
                 type="button"
                 onClick={() => setArticleType("video")}
-                className={`px-4 py-3 text-sm font-semibold transition-all duration-200 border-b-2 flex items-center gap-2 ${
+                className={`whitespace-nowrap flex-shrink-0 px-4 py-3 text-sm font-semibold transition-all duration-200 border-b-2 flex items-center gap-2 ${
                   (editType || articleType) === "video"
                     ? "border-red-600 text-red-600 font-bold"
                     : "border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300"

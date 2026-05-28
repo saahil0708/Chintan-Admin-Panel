@@ -145,10 +145,12 @@ const NewsAdminDashboard = () => {
   };
 
   // Fetch recent articles from backend
-  const fetchRecentArticles = async () => {
+  const fetchRecentArticles = async (showLoader = true) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (showLoader) {
+        setLoading(true);
+        setError(null);
+      }
 
       // Fetch all content types with proper error handling
       const fetchWithFallback = async (url, type) => {
@@ -201,11 +203,15 @@ const NewsAdminDashboard = () => {
       setLastUpdated(new Date());
     } catch (error) {
       console.error("Error fetching articles:", error);
-      toast.error(
-        "Failed to fetch content. Please check your connection and try again."
-      );
+      if (showLoader) {
+        toast.error(
+          "Failed to fetch content. Please check your connection and try again."
+        );
+      }
     } finally {
-      setLoading(false);
+      if (showLoader) {
+        setLoading(false);
+      }
     }
   };
 
@@ -224,6 +230,14 @@ const NewsAdminDashboard = () => {
   useEffect(() => {
     fetchRecentArticles();
     fetchDbStats();
+
+    // Auto-refresh data every 60 seconds (polling)
+    const intervalId = setInterval(() => {
+      fetchRecentArticles(false);
+      fetchDbStats();
+    }, 60000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   // Delete article handler
@@ -334,6 +348,17 @@ const NewsAdminDashboard = () => {
       { name: "Breaking", value: breaking, color: "#ea580c" },
     ].filter(item => item.value > 0);
   }, [recentArticles]);
+
+  if (loading && recentArticles.length === 0) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f4f6f8' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <CircularProgress size={40} sx={{ color: '#CA0019' }} />
+          <Typography color="#64748b" fontWeight={500}>Loading dashboard data...</Typography>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
