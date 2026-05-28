@@ -44,15 +44,10 @@ const AdminHomePage = () => {
                 }
             );
 
-            if (data?.success) {
-                const user = await dispatch(fetchUserProfile()).unwrap();
-                if (user) {
-                    dispatch(loginSuccess(user));
-                    toast.success("Login Successful");
-                    navigate("/dashboard");
-                } else {
-                    throw new Error("Failed to fetch user data");
-                }
+            if (data?.success && data?.user) {
+                dispatch(loginSuccess(data.user));
+                toast.success("Login Successful");
+                navigate("/dashboard");
             } else {
                 toast.error(data?.message || "Login failed");
             }
