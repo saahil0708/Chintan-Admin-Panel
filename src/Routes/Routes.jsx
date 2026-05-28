@@ -9,6 +9,7 @@ import UsersUI from "../Pages/Dashboard Pages/User";
 import Sidebar from "../Components/Sidebar";
 import CategoriesUI from "../Pages/Dashboard Pages/Categories";
 import PostContent from "../Pages/Dashboard Pages/PostContent";
+import Settings from "../Pages/Dashboard Pages/Settings";
 import { useState } from "react";
 import { Box, AppBar, Toolbar, IconButton, Typography } from "@mui/material";
 import { Menu as MenuIcon } from "lucide-react";
@@ -117,6 +118,14 @@ export default () => {
           element: (
             <DashboardLayout>
               <UsersUI />
+            </DashboardLayout>
+          ),
+        },
+        {
+          path: "/dashboard/settings",
+          element: (
+            <DashboardLayout>
+              <Settings />
             </DashboardLayout>
           ),
         },

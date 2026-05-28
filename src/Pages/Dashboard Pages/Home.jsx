@@ -349,17 +349,6 @@ const NewsAdminDashboard = () => {
     ].filter(item => item.value > 0);
   }, [recentArticles]);
 
-  if (loading && recentArticles.length === 0) {
-    return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f4f6f8' }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-          <CircularProgress size={40} sx={{ color: '#CA0019' }} />
-          <Typography color="#64748b" fontWeight={500}>Loading dashboard data...</Typography>
-        </Box>
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
       {/* Main content */}
@@ -395,44 +384,50 @@ const NewsAdminDashboard = () => {
                   Views Overview ({currentYear})
                 </Typography>
                 <Box sx={{ flex: 1, minHeight: 300, width: '100%' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={monthlyViews} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#ca0019" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#ca0019" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                      <XAxis
-                        dataKey="name"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: '#6b7280', fontSize: 12 }}
-                        dy={10}
-                      />
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: '#6b7280', fontSize: 12 }}
-                        dx={-10}
-                        tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}
-                      />
-                      <Tooltip
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                        cursor={{ stroke: 'rgba(202,0,25,0.2)', strokeWidth: 2, strokeDasharray: '4 4' }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="views"
-                        stroke="#ca0019"
-                        strokeWidth={3}
-                        fillOpacity={1}
-                        fill="url(#colorViews)"
-                        activeDot={{ r: 6, fill: '#ca0019', stroke: '#fff', strokeWidth: 2 }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  {loading && recentArticles.length === 0 ? (
+                    <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <CircularProgress size={30} sx={{ color: '#CA0019' }} />
+                    </Box>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={monthlyViews} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#ca0019" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#ca0019" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                        <XAxis
+                          dataKey="name"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: '#6b7280', fontSize: 12 }}
+                          dy={10}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: '#6b7280', fontSize: 12 }}
+                          dx={-10}
+                          tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}
+                        />
+                        <Tooltip
+                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                          cursor={{ stroke: 'rgba(202,0,25,0.2)', strokeWidth: 2, strokeDasharray: '4 4' }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="views"
+                          stroke="#ca0019"
+                          strokeWidth={3}
+                          fillOpacity={1}
+                          fill="url(#colorViews)"
+                          activeDot={{ r: 6, fill: '#ca0019', stroke: '#fff', strokeWidth: 2 }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
                 </Box>
               </Paper>
             </Grid>
@@ -457,7 +452,9 @@ const NewsAdminDashboard = () => {
                   Content Mix
                 </Typography>
                 <Box sx={{ flex: 1, minHeight: 200, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {contentBreakdownData.length > 0 ? (
+                  {loading && recentArticles.length === 0 ? (
+                    <CircularProgress size={30} sx={{ color: '#CA0019' }} />
+                  ) : contentBreakdownData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -502,20 +499,28 @@ const NewsAdminDashboard = () => {
                 <Typography variant="subtitle2" fontWeight="bold" sx={{ color: 'rgba(255,255,255,0.8)', mb: 0.5 }}>
                   Database Storage
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 1.5 }}>
-                  <Typography variant="h5" fontWeight="900" sx={{ color: 'white' }}>
-                    {dbStats ? (dbStats.totalSize / (1024 * 1024)).toFixed(2) : "0.00"} MB
-                  </Typography>
-                  <Typography variant="caption" fontWeight={600} sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                    / 512 MB
-                  </Typography>
-                </Box>
-                <Box sx={{ width: '100%', height: 6, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 3, overflow: 'hidden' }}>
-                  <Box sx={{ width: `${dbStats ? Math.min((dbStats.totalSize / (1024 * 1024 * 512)) * 100, 100) : 0}%`, height: '100%', bgcolor: 'white', borderRadius: 3 }} />
-                </Box>
-                <Typography variant="caption" sx={{ mt: 1, color: 'white', fontWeight: 600 }}>
-                  {dbStats ? ((dbStats.totalSize / (1024 * 1024 * 512)) * 100).toFixed(2) : "0"}% Used
-                </Typography>
+                {!dbStats ? (
+                  <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 70 }}>
+                    <CircularProgress size={24} sx={{ color: 'rgba(255,255,255,0.8)' }} />
+                  </Box>
+                ) : (
+                  <>
+                    <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 1.5 }}>
+                      <Typography variant="h5" fontWeight="900" sx={{ color: 'white' }}>
+                        {(dbStats.totalSize / (1024 * 1024)).toFixed(2)} MB
+                      </Typography>
+                      <Typography variant="caption" fontWeight={600} sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                        / 512 MB
+                      </Typography>
+                    </Box>
+                    <Box sx={{ width: '100%', height: 6, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 3, overflow: 'hidden' }}>
+                      <Box sx={{ width: `${Math.min((dbStats.totalSize / (1024 * 1024 * 512)) * 100, 100)}%`, height: '100%', bgcolor: 'white', borderRadius: 3 }} />
+                    </Box>
+                    <Typography variant="caption" sx={{ mt: 1, color: 'white', fontWeight: 600 }}>
+                      {((dbStats.totalSize / (1024 * 1024 * 512)) * 100).toFixed(2)}% Used
+                    </Typography>
+                  </>
+                )}
               </Paper>
             </Grid>
 
@@ -541,37 +546,45 @@ const NewsAdminDashboard = () => {
                   Top Performers
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', pt: 1 }}>
-                  {dynamicTopPerformers.map((article, index) => (
-                    <Box
-                      key={article._id || index}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 2,
-                        pb: 2.5,
-                        mb: 2.5,
-                        borderBottom: index !== dynamicTopPerformers.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none'
-                      }}
-                    >
-                      <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: index === 0 ? '#ca0019' : 'rgba(255,255,255,0.1)', color: index === 0 ? 'white' : 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.75rem', flexShrink: 0 }}>
-                        {index + 1}
-                      </Box>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.95)', fontWeight: 500, mb: 0.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                          {article.title}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>
-                            {article.views ? article.views.toLocaleString() : "0"} views
+                  {loading && recentArticles.length === 0 ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                      <CircularProgress size={30} sx={{ color: 'rgba(255,255,255,0.7)' }} />
+                    </Box>
+                  ) : dynamicTopPerformers.length > 0 ? (
+                    dynamicTopPerformers.map((article, index) => (
+                      <Box
+                        key={article._id || index}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 2,
+                          pb: 2.5,
+                          mb: 2.5,
+                          borderBottom: index !== dynamicTopPerformers.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none'
+                        }}
+                      >
+                        <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: index === 0 ? '#ca0019' : 'rgba(255,255,255,0.1)', color: index === 0 ? 'white' : 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.75rem', flexShrink: 0 }}>
+                          {index + 1}
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.95)', fontWeight: 500, mb: 0.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            {article.title}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <FileText size={12} />
-                            {article.type}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>
+                              {article.views ? article.views.toLocaleString() : "0"} views
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <FileText size={12} />
+                              {article.type}
+                            </Typography>
+                          </Box>
                         </Box>
                       </Box>
-                    </Box>
-                  ))}
+                    ))
+                  ) : (
+                    <Typography color="rgba(255,255,255,0.5)" variant="body2" align="center" sx={{ py: 4 }}>No top performers</Typography>
+                  )}
                 </Box>
               </Paper>
             </Grid>
