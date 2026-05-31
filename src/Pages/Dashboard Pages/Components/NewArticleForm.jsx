@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, AlertTriangle, FileText, Image as ImageIcon, Video, Clock, Tag, Plus } from 'lucide-react';
 import api, { backendURL } from '../../../api/axiosInstance';
+import axios from 'axios';
 import { toast } from 'react-toastify';
 import { TextField, Checkbox, FormControlLabel, Select, MenuItem, InputLabel, FormControl, Box, FormHelperText } from '@mui/material';
 import RichTextEditor from '../../../Components/RichTextEditor';
