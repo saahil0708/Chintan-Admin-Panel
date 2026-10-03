@@ -8,10 +8,15 @@ pnpm-debug.log*
 lerna-debug.log*
 
 dist
-node_modules
+node_modules/
 dist-ssr
 *.local
 .env
+.env.*
+*.env
+
+# Nested repositories / submodules
+chintannews/
 
 # Editor directories and files
 .vscode/*

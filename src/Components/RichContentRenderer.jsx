@@ -4,14 +4,16 @@ import DOMPurify from 'dompurify';
 const RichContentRenderer = ({ content, className = '' }) => {
   if (!content) return null;
 
-  // Sanitize the HTML content to prevent XSS attacks
+  // Sanitize the HTML content to prevent XSS attacks while allowing rich article formatting
   const sanitizedContent = DOMPurify.sanitize(content, {
     ALLOWED_TAGS: [
-      'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'img', 'a', 'div', 'span'
+      'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'del', 'strike',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'hr',
+      'img', 'figure', 'figcaption', 'a', 'div', 'span'
     ],
     ALLOWED_ATTR: [
-      'src', 'alt', 'href', 'target', 'class', 'style', 'width', 'height'
+      'src', 'alt', 'title', 'href', 'target', 'rel', 'class', 'style', 'width', 'height'
     ],
     ALLOW_DATA_ATTR: false
   });
@@ -24,4 +26,4 @@ const RichContentRenderer = ({ content, className = '' }) => {
   );
 };
 
-export default RichContentRenderer; 
+export default RichContentRenderer;

@@ -69,7 +69,7 @@ const ArticleForm = ({ article = null, onSave, onCancel, categories = [] }) => {
   const handleContentChange = (html, text) => {
     setFormData((prev) => ({
       ...prev,
-      content: text || html.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' '),
+      content: html,
       richContent: html,
     }));
   };

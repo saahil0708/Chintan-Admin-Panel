@@ -149,7 +149,7 @@ import RichTextEditor from '../../../Components/RichTextEditor';
     const handleContentChange = (html, text) => {
       setFormData((prev) => ({
         ...prev,
-        content: text || html.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' '),
+        content: html,
         richContent: html,
       }));
     };
