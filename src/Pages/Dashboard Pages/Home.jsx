@@ -134,10 +134,8 @@ const NewsAdminDashboard = () => {
   // Handle logout with proper error handling
   const handleLogout = async () => {
     try {
-      console.log("Logout button clicked");
       setShowUserMenu(false);
       await dispatch(logoutUser());
-      console.log("Logout completed");
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Failed to logout. Please try again.");
@@ -257,16 +255,9 @@ const NewsAdminDashboard = () => {
         endpoint = `/api/breaking-news/${id}`;
       if (type === "video") endpoint = `/api/videos/${id}`;
 
-      console.log(`Deleting ${type} with ID: ${id} from endpoint: ${endpoint}`);
-
-      const startTime = Date.now();
       await api.delete(endpoint);
-      const endTime = Date.now();
-
-      console.log(`Delete operation took ${endTime - startTime}ms`);
 
       setRecentArticles((prev) => prev.filter((item) => item._id !== id));
-      console.log("Item deleted successfully");
       toast.success("Item Deleted Successfully");
     } catch (error) {
       console.error("Error deleting item:", error);

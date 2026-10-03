@@ -90,6 +90,30 @@ const TextAlignExtension = Extension.create({
   },
 });
 
+const ToolbarButton = ({
+  onClick,
+  isActive = false,
+  disabled = false,
+  title,
+  children,
+  activeClass = "bg-red-50 text-red-700 font-semibold border-red-200 shadow-inner",
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    title={title}
+    aria-label={title}
+    className={`p-2 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 border border-transparent transition-all duration-150 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed ${
+      isActive ? activeClass : ""
+    }`}
+  >
+    {children}
+  </button>
+);
+
+const Divider = () => <div className="w-px h-5 bg-gray-200 my-auto mx-1" />;
+
 const RichTextEditor = ({
   content = "",
   onChange,
@@ -319,31 +343,6 @@ const RichTextEditor = ({
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
   const charCount = text.length;
   const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
-
-  const ToolbarButton = ({
-    onClick,
-    isActive = false,
-    disabled = false,
-    title,
-    children,
-    activeClass = "bg-red-50 text-red-700 font-semibold border-red-200 shadow-inner",
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      aria-label={title}
-      className={`p-2 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 border border-transparent transition-all duration-150 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed ${
-        isActive ? activeClass : ""
-      }`}
-    >
-      {children}
-    </button>
-  );
-
-  const Divider = () => <div className="w-px h-5 bg-gray-200 my-auto mx-1" />;
-
   return (
     <div
       className={`border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-100 transition-all ${className}`}

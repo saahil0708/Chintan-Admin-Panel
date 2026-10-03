@@ -26,18 +26,6 @@ const ArticlesUI = () => {
   const navigate = useNavigate();
 
 
-  // Fetch articles from API
-  useEffect(() => {
-    fetchArticles();
-
-    // Auto-refresh data every 60 seconds (polling)
-    const intervalId = setInterval(() => {
-      fetchArticles(false);
-    }, 60000);
-
-    return () => clearInterval(intervalId);
-  }, []);
-
   const fetchArticles = async (showLoader = true) => {
     if (showLoader) setLoading(true);
     try {
@@ -51,6 +39,18 @@ const ArticlesUI = () => {
       if (showLoader) setLoading(false);
     }
   };
+
+  // Fetch articles from API
+  useEffect(() => {
+    fetchArticles();
+
+    // Auto-refresh data every 60 seconds (polling)
+    const intervalId = setInterval(() => {
+      fetchArticles(false);
+    }, 60000);
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Get unique categories from articles
   let categories = Array.from(new Set(articles.flatMap(article => Array.isArray(article.category) ? article.category : [article.category]))).filter(Boolean);

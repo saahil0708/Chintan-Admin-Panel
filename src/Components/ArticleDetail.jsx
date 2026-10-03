@@ -11,10 +11,6 @@ const ArticleDetail = ({ articleId, onBack }) => {
   const [likeCount, setLikeCount] = useState(0);
 
 
-  useEffect(() => {
-    fetchArticle();
-  }, [articleId]);
-
   const fetchArticle = async () => {
     try {
       const response = await api.get(`/api/articles/${articleId}`);
@@ -27,6 +23,10 @@ const ArticleDetail = ({ articleId, onBack }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchArticle();
+  }, [articleId]);
 
   const handleLike = async () => {
     try {

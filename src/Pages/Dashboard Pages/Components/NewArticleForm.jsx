@@ -215,12 +215,6 @@ import RichTextEditor from '../../../Components/RichTextEditor';
     const handleImageChange = async (e) => {
       const file = e.target.files[0];
       if (file) {
-        console.log("Image file selected:", {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-        });
-
         // Validate file type
         if (!file.type.match("image.*")) {
           toast.error("Please Select an image file (JPEG, PNG, GIF)");
@@ -320,9 +314,6 @@ import RichTextEditor from '../../../Components/RichTextEditor';
         return;
       }
 
-      console.log("=== FORM SUBMISSION START ===");
-      console.log("Article type:", type);
-
       try {
         setIsPosting(true);
 
@@ -387,77 +378,8 @@ import RichTextEditor from '../../../Components/RichTextEditor';
           return;
         }
 
-        // Handle breaking news with image upload
-        if (type === "breaking") {
-          const breakingPayload = {
-            title: breakingData.title,
-            description: breakingData.description,
-            reporter: breakingData.reporter,
-            designation: breakingData.designation,
-            category: breakingData.category,
-          };
-
-          let breakingRes;
-
-          if (editData) {
-            // Update existing breaking news
-            const response = await api.put(`/api/breaking-news/${editData._id}`,
-              breakingPayload,
-              {
-                withCredentials: true,
-              }
-            );
-            breakingRes = { data: response.data };
-          } else {
-            // Create new breaking news
-            const response = await api.post(`/api/breaking-news`,
-              breakingPayload,
-              {
-                withCredentials: true,
-              }
-            );
-            breakingRes = { data: response.data };
-          }
-
-          const breakingId = editData
-            ? editData._id
-            : breakingRes.data._id;
-          let imageUrl = breakingRes.data.imageUrl || "";
-
-          // Upload image if provided
-          if (imageFile) {
-            const uploadedImageUrl = await uploadBreakingNewsImage(
-              breakingId,
-              imageFile
-            );
-            if (uploadedImageUrl) {
-              imageUrl = uploadedImageUrl;
-            }
-          }
-
-          // Update UI
-          const newBreaking = {
-            ...breakingRes.data,
-            imageUrl,
-            type: "breaking",
-          };
-
-          if (editData) {
-            if (onSuccess) onSuccess(newBreaking);
-            toast.success("Breaking News Updated!");
-          } else {
-            if (onSuccess) onSuccess(newBreaking);
-            toast.success("Breaking News Published!");
-          }
-
-          if (onClose) onClose();
-          return;
-        }
-
         // Handle live news
         if (type === "live") {
-          console.log("Processing live news with headlines:", liveHeadlines);
-
           // Filter out empty headlines
           const validHeadlines = liveHeadlines.filter(
             (headline) => headline.trim() !== ""
@@ -468,12 +390,9 @@ import RichTextEditor from '../../../Components/RichTextEditor';
             return;
           }
 
-          console.log("Valid headlines to submit:", validHeadlines);
-
           // Submit each headline as a separate live news item
           const submissionPromises = validHeadlines.map(async (headline) => {
             const payload = { title: headline.trim() };
-            console.log("Submitting headline:", payload);
 
             if (editData && validHeadlines.length === 1) {
               // If editing and only one headline, update the existing one
@@ -497,7 +416,6 @@ import RichTextEditor from '../../../Components/RichTextEditor';
           });
 
           const responses = await Promise.all(submissionPromises);
-          console.log("All live news responses:", responses);
 
           // Update UI with all new live news items
           const newLiveNews = responses.map((response) => ({
@@ -529,9 +447,6 @@ import RichTextEditor from '../../../Components/RichTextEditor';
           method = "PUT";
         }
 
-        console.log("API endpoint:", endpoint);
-        console.log("HTTP method:", method);
-
         // Regular article payload
         const payload = {
           title: formData.title,
@@ -547,8 +462,6 @@ import RichTextEditor from '../../../Components/RichTextEditor';
           additionalImages: additionalImages || [],
         };
 
-        console.log("Article payload:", payload);
-
         // Submit article
         const response = await axios({
           method: method,
@@ -558,16 +471,11 @@ import RichTextEditor from '../../../Components/RichTextEditor';
         });
 
         const responseData = response.data;
-        console.log("Article creation response:", responseData);
-
         const finalArticle = { ...responseData, type: "article" };
 
         // Upload image for regular articles if provided
         if (imageFile) {
           const articleId = editData ? editData._id : responseData._id;
-          console.log("=== STARTING IMAGE UPLOAD ===");
-          console.log("Article ID:", articleId);
-
           const imageFormData = new FormData();
           imageFormData.append("image", imageFile);
 
@@ -578,11 +486,6 @@ import RichTextEditor from '../../../Components/RichTextEditor';
 
           try {
             setIsUploading(true);
-            console.log(
-              "Making image upload request to:",
-              `${backendURL}/api/articles/${articleId}/image`
-            );
-
             const imageResponse = await api.post(`/api/articles/${articleId}/image`,
               imageFormData,
               {
@@ -591,28 +494,18 @@ import RichTextEditor from '../../../Components/RichTextEditor';
             );
 
             const imageData = imageResponse.data;
-            console.log("=== IMAGE UPLOAD SUCCESS ===");
-            console.log("Image upload response:", imageData);
 
             if (imageData.success && imageData.imageUrl) {
               finalArticle.imageUrl = imageData.imageUrl;
-              console.log("Final article with image:", finalArticle);
-              console.log("Article and image uploaded successfully!");
             } else {
               console.error(
                 "Image upload response missing imageUrl:",
                 imageData
               );
-              console.log(
-                "Article created but image upload response was unexpected"
-              );
             }
           } catch (imageError) {
             console.error("=== IMAGE UPLOAD ERROR ===");
             console.error("Error details:", imageError);
-            console.log(
-              `Article created but image upload failed: ${imageError.message}`
-            );
           } finally {
             setIsUploading(false);
           }
@@ -636,7 +529,6 @@ import RichTextEditor from '../../../Components/RichTextEditor';
         toast.error("Error Publishing/Updating Content");
       } finally {
         setIsPosting(false);
-        console.log("=== FORM SUBMISSION END ===");
       }
     };
 
